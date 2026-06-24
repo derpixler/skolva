@@ -1,3 +1,4 @@
+// Package app wires the Gin HTTP router, middleware stack, and health endpoint.
 package app
 
 import (
@@ -8,6 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// NewRouter returns a Gin engine with the standard middleware stack and
+// a single /api/health endpoint. The health endpoint pings both database
+// pools and returns 200 {"status":"healthy"} or 503 on failure.
 func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker) *gin.Engine {
 	router := gin.New()
 

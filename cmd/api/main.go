@@ -1,3 +1,8 @@
+// Skolva API server — a self-hosted community management platform.
+//
+// Phase 1 (Walking Skeleton): starts a Gin HTTP server with a health
+// endpoint, dual database pools, an empty plugin registry, and a
+// River job worker. No real business logic yet — just the foundation.
 package main
 
 import (
@@ -25,6 +30,7 @@ func main() {
 		return
 	}
 
+	// Database — two isolated connection pools on the same PostgreSQL instance.
 	pools, err := database.NewPools(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Printf("failed to create database pools: %v", err)
@@ -32,6 +38,7 @@ func main() {
 	}
 	defer pools.Close()
 
+	// Plugin system — empty in Phase 1, ready for module registration.
 	hookManager := hooks.NewHookManager()
 	pluginRegistry := hooks.NewPluginRegistry()
 
@@ -45,9 +52,11 @@ func main() {
 		return
 	}
 
+	// AI provider — no-op until Phase 9.
 	aiProvider := ai.NewNoopProvider()
 	_ = aiProvider
 
+	// Background jobs — River worker with empty handler set.
 	worker, err := jobs.NewWorker(ctx, pools.Worker)
 	if err != nil {
 		log.Printf("failed to create worker: %v", err)
@@ -62,6 +71,7 @@ func main() {
 
 	jobs.StartScheduler(ctx, worker.Client())
 
+	// HTTP server.
 	router := app.NewRouter(pools, hookManager, worker)
 
 	go func() {
