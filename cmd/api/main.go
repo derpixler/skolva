@@ -16,17 +16,19 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
-	}
-
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	cfg, err := config.Load()
+	if err != nil {
+		log.Printf("failed to load config: %v", err)
+		return
+	}
+
 	pools, err := database.NewPools(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("failed to create database pools: %v", err)
+		log.Printf("failed to create database pools: %v", err)
+		return
 	}
 	defer pools.Close()
 
@@ -34,11 +36,13 @@ func main() {
 	pluginRegistry := hooks.NewPluginRegistry()
 
 	if err := pluginRegistry.RegisterAll(hookManager); err != nil {
-		log.Fatalf("failed to register plugins: %v", err)
+		log.Printf("failed to register plugins: %v", err)
+		return
 	}
 
 	if err := pluginRegistry.ActivateAll(pools.Web); err != nil {
-		log.Fatalf("failed to activate plugins: %v", err)
+		log.Printf("failed to activate plugins: %v", err)
+		return
 	}
 
 	aiProvider := ai.NewNoopProvider()
@@ -46,7 +50,8 @@ func main() {
 
 	worker, err := jobs.NewWorker(ctx, pools.Worker)
 	if err != nil {
-		log.Fatalf("failed to create worker: %v", err)
+		log.Printf("failed to create worker: %v", err)
+		return
 	}
 
 	go func() {
@@ -63,7 +68,7 @@ func main() {
 		addr := ":" + cfg.Port
 		log.Printf("server starting on %s", addr)
 		if err := router.Run(addr); err != nil {
-			log.Fatalf("server failed: %v", err)
+			log.Printf("server failed: %v", err)
 		}
 	}()
 

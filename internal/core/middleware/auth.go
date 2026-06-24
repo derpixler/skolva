@@ -3,8 +3,8 @@ package middleware
 import (
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	apperrors "github.com/derpixler/skolva/internal/core/errors"
+	"github.com/gin-gonic/gin"
 )
 
 type Actor struct {

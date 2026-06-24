@@ -1,35 +1,37 @@
 version: "2"
 
-run:
-  timeout: 5m
-  tests: true
-
 linters:
+  default: none
   enable:
     - errcheck
-    - gosimple
+    - gosec
+    - gocritic
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - gosec
-    - gocritic
 
-linters-settings:
-  gosec:
-    excludes:
-      - G115
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
+  settings:
+    gosec:
+      excludes:
+        - G115
+    gocritic:
+      enabled-tags:
+        - diagnostic
 
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gosec
-    - path: internal/core/database/
-      linters:
-        - gosec
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+      - path: internal/core/database/
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - gofmt
+
+run:
+  timeout: 5m
+  tests: true

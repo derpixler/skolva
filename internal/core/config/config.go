@@ -10,29 +10,29 @@ import (
 )
 
 type Config struct {
-	Port            string
-	Env             string
-	DatabaseURL     string
-	JWTSecret       string
-	JWTExpiryHours  int
+	Port             string
+	Env              string
+	DatabaseURL      string
+	JWTSecret        string
+	JWTExpiryHours   int
 	ZFARequiredRoles []string
-	AIProviderURL   string
-	AIAPIKey        string
-	AIModel         string
-	AIGDPRMode      string
-	StorageBackend  string
+	AIProviderURL    string
+	AIAPIKey         string
+	AIModel          string
+	AIGDPRMode       string
+	StorageBackend   string
 	StorageLocalPath string
-	S3Endpoint      string
-	S3AccessKey     string
-	S3SecretKey     string
-	S3Bucket        string
-	SMTPHost        string
-	SMTPPort        int
-	SMTPUser        string
-	SMTPPassword    string
-	SMTPFrom        string
-	ModulesEnabled  []string
-	LogLevel        string
+	S3Endpoint       string
+	S3AccessKey      string
+	S3SecretKey      string
+	S3Bucket         string
+	SMTPHost         string
+	SMTPPort         int
+	SMTPUser         string
+	SMTPPassword     string
+	SMTPFrom         string
+	ModulesEnabled   []string
+	LogLevel         string
 }
 
 func Load() (*Config, error) {

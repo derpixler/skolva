@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	apperrors "github.com/derpixler/skolva/internal/core/errors"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func TestNewNotFound(t *testing.T) {
