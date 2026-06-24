@@ -33,7 +33,7 @@ funding societies) and who believe that your data belongs to you.
 
 ## What Skolva Is
 
-A **self-hosted, open-source club management platform.** Modular, so you
+A **self-hosted, open-source community management platform.** Modular, so you
 only activate what you need. Built on PostgreSQL. Designed for
 volunteers.
 
