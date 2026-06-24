@@ -7,13 +7,19 @@ import (
 	"time"
 )
 
+// durationRE matches compound duration strings like "1d3M2h30m".
+// Each component (d=day, M=month≈30d, h=hour, m=minute, s=second) is optional.
 var durationRE = regexp.MustCompile(`^(?:(\d+)d)?(?:(\d+)M)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$`)
 
+// ParseDuration extends time.ParseDuration with day (d) and month (M) suffixes.
+// Months are approximated as 30 days. Standard Go duration strings ("1h30m")
+// are also accepted.
 func ParseDuration(s string) (time.Duration, error) {
 	if s == "" {
 		return 0, fmt.Errorf("empty duration string")
 	}
 
+	// Try standard Go duration first.
 	d, err := time.ParseDuration(s)
 	if err == nil {
 		return d, nil
@@ -53,6 +59,8 @@ func ParseDuration(s string) (time.Duration, error) {
 	return total, nil
 }
 
+// MustParseDuration is like ParseDuration but panics on error.
+// Only use for compile-time-known constants.
 func MustParseDuration(s string) time.Duration {
 	d, err := ParseDuration(s)
 	if err != nil {
@@ -61,6 +69,8 @@ func MustParseDuration(s string) time.Duration {
 	return d
 }
 
+// FormatDuration returns a human-readable representation using days, hours,
+// and minutes. Seconds are omitted.
 func FormatDuration(d time.Duration) string {
 	if d == 0 {
 		return "0s"

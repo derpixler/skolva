@@ -7,14 +7,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Actor represents the currently authenticated user.
 type Actor struct {
-	UserID string
-	Email  string
-	Roles  []string
+	UserID string   // UUID of the user
+	Email  string   // login email
+	Roles  []string // assigned role slugs
 }
 
 const actorKey = "actor"
 
+// AuthSkeleton is a placeholder JWT middleware. During Phase 1 it accepts
+// only the literal token "test-token", which injects a hardcoded admin
+// actor. Full JWT validation will be implemented in Phase 2.
 func AuthSkeleton() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -38,6 +42,7 @@ func AuthSkeleton() gin.HandlerFunc {
 	}
 }
 
+// RequireAuth aborts with 401 if no actor is present in the context.
 func RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		actor := GetActor(c)
@@ -49,7 +54,10 @@ func RequireAuth() gin.HandlerFunc {
 	}
 }
 
+// RequirePermission aborts with 403 if the actor does not have admin role.
+// TODO: replace admin-role bypass with actual permission check in Phase 2.
 func RequirePermission(permission string) gin.HandlerFunc {
+	_ = permission // TODO: use in Phase 2 when RBAC is implemented
 	return func(c *gin.Context) {
 		actor := GetActor(c)
 		if actor == nil {
@@ -68,10 +76,10 @@ func RequirePermission(permission string) gin.HandlerFunc {
 	}
 }
 
-func SetActor(c *gin.Context, actor *Actor) {
-	c.Set(actorKey, actor)
-}
+// SetActor stores an Actor in the Gin context.
+func SetActor(c *gin.Context, actor *Actor) { c.Set(actorKey, actor) }
 
+// GetActor retrieves the Actor from the Gin context, or nil if absent.
 func GetActor(c *gin.Context) *Actor {
 	if actor, exists := c.Get(actorKey); exists {
 		if a, ok := actor.(*Actor); ok {
