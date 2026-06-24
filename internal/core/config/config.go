@@ -1,3 +1,8 @@
+// Package config loads application configuration from environment variables.
+//
+// Variables are read once at startup via config.Load(). Missing required
+// variables cause a panic (fail-fast for misconfigured deployments).
+// Optional variables fall back to sensible defaults.
 package config
 
 import (
@@ -9,32 +14,35 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Config holds all application configuration derived from environment variables.
 type Config struct {
-	Port             string
-	Env              string
-	DatabaseURL      string
-	JWTSecret        string
-	JWTExpiryHours   int
-	ZFARequiredRoles []string
-	AIProviderURL    string
-	AIAPIKey         string
-	AIModel          string
-	AIGDPRMode       string
-	StorageBackend   string
-	StorageLocalPath string
-	S3Endpoint       string
+	Port             string   // HTTP listen port, default "8080"
+	Env              string   // deployment environment: "development" or "production"
+	DatabaseURL      string   // PostgreSQL connection string (required)
+	JWTSecret        string   // HS256 signing key (required)
+	JWTExpiryHours   int      // token lifetime in hours, default 24
+	ZFARequiredRoles []string // roles that MUST enable two-factor auth
+	AIProviderURL    string   // OpenAI-compatible API base URL
+	AIAPIKey         string   // API key for the AI provider
+	AIModel          string   // model name, e.g. "gpt-4o"
+	AIGDPRMode       string   // "disabled", "strict", or "cloud"
+	StorageBackend   string   // "local" or "s3"
+	StorageLocalPath string   // local filesystem path when backend=local
+	S3Endpoint       string   // S3-compatible endpoint
 	S3AccessKey      string
 	S3SecretKey      string
 	S3Bucket         string
-	SMTPHost         string
-	SMTPPort         int
+	SMTPHost         string // mail server hostname
+	SMTPPort         int    // mail server port, default 1025
 	SMTPUser         string
 	SMTPPassword     string
-	SMTPFrom         string
-	ModulesEnabled   []string
-	LogLevel         string
+	SMTPFrom         string   // sender address, default noreply@skolva.org
+	ModulesEnabled   []string // comma-separated module list
+	LogLevel         string   // zap log level, default "debug"
 }
 
+// Load reads configuration from the environment, with an optional .env file.
+// Required variables (DATABASE_URL, JWT_SECRET) panic if unset.
 func Load() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -67,6 +75,17 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
+// IsModuleEnabled reports whether the given module is present in MODULES_ENABLED.
+func (c *Config) IsModuleEnabled(name string) bool {
+	for _, m := range c.ModulesEnabled {
+		if m == name {
+			return true
+		}
+	}
+	return false
+}
+
+// getEnv returns the environment variable value or the fallback if unset.
 func getEnv(key, fallback string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
@@ -74,6 +93,7 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
+// requireEnv returns the environment variable value or panics if unset.
 func requireEnv(key string) string {
 	val := os.Getenv(key)
 	if val == "" {
@@ -82,6 +102,7 @@ func requireEnv(key string) string {
 	return val
 }
 
+// getEnvInt parses an integer environment variable, falling back on error.
 func getEnvInt(key string, fallback int) int {
 	val := os.Getenv(key)
 	if val == "" {
@@ -94,6 +115,8 @@ func getEnvInt(key string, fallback int) int {
 	return i
 }
 
+// getEnvSlice splits a comma-separated environment variable into a slice,
+// trimming whitespace. Returns fallback if the result would be empty.
 func getEnvSlice(key string, fallback []string) []string {
 	val := os.Getenv(key)
 	if val == "" {
@@ -111,13 +134,4 @@ func getEnvSlice(key string, fallback []string) []string {
 		return fallback
 	}
 	return result
-}
-
-func (c *Config) IsModuleEnabled(name string) bool {
-	for _, m := range c.ModulesEnabled {
-		if m == name {
-			return true
-		}
-	}
-	return false
 }
