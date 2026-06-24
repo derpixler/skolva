@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vv
+          POSTGRES_PASSWORD: vv
+          POSTGRES_DB: vv
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Apply Schema
+        run: |
+          apt-get update && apt-get install -y postgresql-client
+          PGPASSWORD=vv psql -h localhost -U vv -d vv < schema.sql
+
+      - name: Run Tests
+        run: go test -v -count=1 -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Check Coverage
+        run: |
+          coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: ${coverage}%"
+          if (( $(echo "$coverage < 80" | bc -l) )); then
+            echo "Coverage below 80%, failing build"
+            exit 1
+          fi
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build
+        run: go build -o bin/skolva ./cmd/api
+
+      - name: Docker Build
+        run: docker build -t skolva:latest .

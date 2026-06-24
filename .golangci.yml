@@ -1,0 +1,35 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - gocritic
+
+linters-settings:
+  gosec:
+    excludes:
+      - G115
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec
+    - path: internal/core/database/
+      linters:
+        - gosec
