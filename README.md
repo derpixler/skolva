@@ -100,7 +100,7 @@ curl http://localhost:8080/api/health
 ## Project Status
 
 **Phase 1:** Walking Skeleton: build, test, lint, CI/CD. Health endpoint
-running. Foundation for all modules. See `./test_tp1.sh` for the full test suite.
+running. Foundation for all modules. See `scripts/test.sh` for the full test suite.
 
 ## Architecture
 
@@ -122,7 +122,7 @@ Skolva/                          REST API
 +-- plugins/registry.go          Plugin loader
 +-- sqlc/                        SQL code generation
 +-- schema.sql                   Database schema (52+ tables)
-+-- test_tp1.sh                   Full test suite runner
++-- scripts/test.sh               Full test suite runner
 ```
 
 ## Modules (planned)

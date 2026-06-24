@@ -4,9 +4,9 @@
 # Runs all tests described in docs/tp1_testanleitung.md
 #
 # Usage:
-#   ./test_tp1.sh              Interactive: select steps from menu
-#   ./test_tp1.sh 01 02 04      Run specific steps non-interactively
-#   ./test_tp1.sh --ci 04 06    CI mode: Ubuntu-compatible, skips Docker steps
+#   ./scripts/test.sh              Interactive: select steps from menu
+#   ./scripts/test.sh 01 02 04      Run specific steps non-interactively
+#   ./scripts/test.sh --ci 04 06    CI mode: Ubuntu-compatible, skips Docker steps
 # =============================================================================
 set -euo pipefail
 

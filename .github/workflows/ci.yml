@@ -52,8 +52,8 @@ jobs:
 
       - name: Run Test Suite
         run: |
-          chmod +x test_tp1.sh
-          ./test_tp1.sh --ci 01 04 06
+          chmod +x scripts/test.sh
+          ./scripts/test.sh --ci 01 04 06
 
   build:
     runs-on: ubuntu-latest
