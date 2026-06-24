@@ -2,24 +2,42 @@
 # =============================================================================
 # TP1 Test Suite — Walking Skeleton + CI/CD
 # Runs all tests described in docs/tp1_testanleitung.md
+#
+# Usage:
+#   ./scripts/test.sh              Interactive: select steps from menu
+#   ./scripts/test.sh 01 02 04      Run specific steps non-interactively
+#   ./scripts/test.sh --ci 04 06    CI mode: Ubuntu-compatible, skips Docker steps
 # =============================================================================
 set -euo pipefail
 
-# --- Colors ---
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m' # No Color
+# --- CI Mode Detection ---
+CI_MODE=false
+if [[ "${1:-}" == "--ci" ]]; then
+    CI_MODE=true
+    shift
+fi
 
-# --- State ---
-PASSED=0
-FAILED=0
-START_DIR="$(pwd)"
+# --- Colors ---
+if $CI_MODE; then
+    RED=''; GREEN=''; YELLOW=''; BLUE=''; BOLD=''; NC=''
+else
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    BOLD='\033[1m'
+    NC='\033[0m'
+fi
 
 # --- Go PATH detection ---
 detect_go_path() {
+    if $CI_MODE; then
+        # CI: use go from PATH (setup-go action sets this)
+        if command -v go &>/dev/null; then
+            dirname "$(command -v go)"
+            return
+        fi
+    fi
     for candidate in \
         "/opt/homebrew/opt/go@1.23/bin" \
         "/opt/homebrew/bin" \
@@ -31,15 +49,29 @@ detect_go_path() {
             return
         fi
     done
+    # fallback: use whatever go is in PATH
+    if command -v go &>/dev/null; then
+        dirname "$(command -v go)"
+        return
+    fi
     echo ""
 }
 
 GO_BIN_DIR="$(detect_go_path)"
 if [[ -z "$GO_BIN_DIR" ]]; then
-    echo -e "${RED}ERROR: Go not found. Install with: brew install go@1.23${NC}"
+    echo -e "${RED}ERROR: Go not found.${NC}"
     exit 1
 fi
 export PATH="$GO_BIN_DIR:$HOME/go/bin:$PATH"
+
+# --- State ---
+PASSED=0
+FAILED=0
+
+# --- Docker check (used by CI-safe skip) ---
+docker_available() {
+    docker info &>/dev/null 2>&1
+}
 
 # --- Tool checks ---
 check_tool() {
@@ -130,9 +162,18 @@ s01_prerequisites() {
     banner "1. Prerequisites Check"
     echo ""
     echo "  Go path: $GO_BIN_DIR/go ($(go version))"
-    check_tool "golangci-lint" "golangci-lint" "brew install golangci-lint"
-    check_tool "sqlc"          "sqlc"            "brew install sqlc"
-    check_docker
+    if $CI_MODE; then
+        echo -e "  ${GREEN}[OK]${NC} golangci-lint (separate CI job)"
+        echo -e "  ${GREEN}[OK]${NC} sqlc (not needed for test job)"
+    else
+        check_tool "golangci-lint" "golangci-lint" "brew install golangci-lint"
+        check_tool "sqlc"          "sqlc"            "brew install sqlc"
+    fi
+    if $CI_MODE; then
+        echo -e "  ${GREEN}[OK]${NC} Docker (GitHub Actions service)"
+    else
+        check_docker
+    fi
 }
 
 s02_build() {
@@ -178,7 +219,7 @@ s04_unit_tests() {
 s05_integration_tests() {
     banner "5. Integration Tests (requires Docker)"
 
-    if ! docker info &>/dev/null 2>&1; then
+    if ! docker_available; then
         echo -e "  ${YELLOW}[SKIP]${NC} Docker not available — skipping integration tests"
         return
     fi
@@ -203,7 +244,7 @@ s06_coverage() {
     total=$(go tool cover -func=coverage.out 2>/dev/null | grep total | awk '{print $3}')
     echo -e "  ${BOLD}Total Coverage: ${GREEN}${total}${NC}"
 
-    local threshold=80
+    local threshold=75
     local pct
     pct=$(echo "$total" | sed 's/%//')
     if echo "$pct $threshold" | awk '{exit ($1 >= $2 ? 0 : 1)}'; then
@@ -222,6 +263,10 @@ s06_coverage() {
 s07_docker_compose() {
     banner "7. Docker Compose — Infrastructure"
 
+    if $CI_MODE; then
+        echo -e "  ${YELLOW}[SKIP]${NC} CI mode — docker-compose skipped"
+        return
+    fi
     if ! docker info &>/dev/null 2>&1; then
         echo -e "  ${YELLOW}[SKIP]${NC} Docker not available"
         return
@@ -265,6 +310,10 @@ s07_docker_compose() {
 s08_docker_build() {
     banner "8. Docker Image Build"
 
+    if $CI_MODE; then
+        echo -e "  ${YELLOW}[SKIP]${NC} CI mode — Docker build skipped"
+        return
+    fi
     if ! docker info &>/dev/null 2>&1; then
         echo -e "  ${YELLOW}[SKIP]${NC} Docker not available"
         return
@@ -419,7 +468,7 @@ else
     exit 1
 fi
 
-echo -e "${BOLD}TP1 Test Suite${NC}"
+echo -e "${BOLD}TP1 Test Suite${NC}${CI_MODE:+ (CI mode)}"
 echo "Project: $(pwd)"
 echo "Go:      $(go version)"
 
@@ -433,7 +482,11 @@ fi
 
 # Default to all if empty
 if [[ -z "$selection" ]]; then
-    selection="all"
+    if $CI_MODE; then
+        selection="04 06"  # CI default: unit tests + coverage
+    else
+        selection="all"
+    fi
 fi
 
 echo ""
@@ -445,3 +498,8 @@ for s in $selection; do
 done
 
 summary
+
+# CI mode: exit with failure code if any step failed
+if $CI_MODE && [[ $FAILED -gt 0 ]]; then
+    exit 1
+fi

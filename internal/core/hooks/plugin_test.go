@@ -3,8 +3,8 @@ package hooks_test
 import (
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/derpixler/skolva/internal/core/hooks"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type testPlugin struct {
@@ -15,8 +15,8 @@ type testPlugin struct {
 }
 
 func (p *testPlugin) Name() string        { return p.name }
-func (p *testPlugin) Version() string      { return "1.0.0" }
-func (p *testPlugin) Description() string  { return "test plugin" }
+func (p *testPlugin) Version() string     { return "1.0.0" }
+func (p *testPlugin) Description() string { return "test plugin" }
 func (p *testPlugin) Register(hm *hooks.HookManager) error {
 	p.registered = true
 	return nil

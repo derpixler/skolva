@@ -1,11 +1,11 @@
 package app
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/derpixler/skolva/internal/core/database"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
 	"github.com/derpixler/skolva/internal/core/middleware"
+	"github.com/gin-gonic/gin"
 )
 
 func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker) *gin.Engine {

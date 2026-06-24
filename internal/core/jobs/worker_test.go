@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/derpixler/skolva/internal/core/database"
+	"github.com/derpixler/skolva/internal/core/jobs"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/derpixler/skolva/internal/core/database"
-	"github.com/derpixler/skolva/internal/core/jobs"
 )
 
 func TestNewWorker(t *testing.T) {
