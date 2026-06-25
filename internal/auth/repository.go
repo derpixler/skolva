@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/derpixler/skolva/internal/core/dbexec"
+	"github.com/derpixler/skolva/internal/core/search"
 	"github.com/derpixler/skolva/internal/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -130,4 +131,39 @@ func (r *Repository) RemoveRolePermission(ctx context.Context, roleSlug, permiss
 // their active roles (role_permissions join).
 func (r *Repository) UserHasPermission(ctx context.Context, userID uuid.UUID, permissionSlug string) (bool, error) {
 	return r.q.UserHasPermission(ctx, db.UserHasPermissionParams{UserID: userID, PermissionSlug: permissionSlug})
+}
+
+// SearchUsers runs a German full-text search over users (core/search) and
+// returns the matching rows ordered by relevance.
+func (r *Repository) SearchUsers(ctx context.Context, q string, limit int) ([]db.GetUsersByIDsRow, error) {
+	searcher, err := search.NewSearcher("users")
+	if err != nil {
+		return nil, err
+	}
+	results, err := searcher.Search(ctx, r.pool, q, limit)
+	if err != nil {
+		return nil, err
+	}
+	if len(results) == 0 {
+		return []db.GetUsersByIDsRow{}, nil
+	}
+	ids := make([]uuid.UUID, len(results))
+	for i, res := range results {
+		ids[i] = res.ID
+	}
+	rows, err := r.q.GetUsersByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	byID := make(map[uuid.UUID]db.GetUsersByIDsRow, len(rows))
+	for _, row := range rows {
+		byID[row.ID] = row
+	}
+	ordered := make([]db.GetUsersByIDsRow, 0, len(ids))
+	for _, id := range ids {
+		if row, ok := byID[id]; ok {
+			ordered = append(ordered, row)
+		}
+	}
+	return ordered, nil
 }

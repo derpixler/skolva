@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker, verify middleware.Verifier) *gin.Engine {
+func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker, verify middleware.Verifier, tm *auth.TokenManager) *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
@@ -31,7 +31,7 @@ func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker
 			c.JSON(200, gin.H{"status": "healthy"})
 		})
 
-		auth.RegisterRoutes(api, pools.Web)
+		auth.RegisterRoutes(api, pools.Web, tm)
 		groups.RegisterRoutes(api, pools.Web)
 		crm.RegisterRoutes(api, pools.Web)
 

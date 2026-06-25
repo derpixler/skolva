@@ -53,7 +53,7 @@ func TestOpenAPIRouteParity(t *testing.T) {
 
 	// Build the real router without a database: route registration does not
 	// query, so nil pools are fine for enumerating the route table.
-	engine := app.NewRouter(&database.Pools{}, nil, nil, noopVerifier)
+	engine := app.NewRouter(&database.Pools{}, nil, nil, noopVerifier, nil)
 
 	exempt := map[string]bool{
 		"GET /openapi.yaml": true, // meta endpoint, not part of the API contract

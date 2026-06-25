@@ -46,3 +46,8 @@ SELECT EXISTS (
   SELECT 1 FROM users
   WHERE lower(email) = lower($1) AND deleted_at IS NULL AND anonymized_at IS NULL
 );
+
+-- name: GetUsersByIDs :many
+SELECT id, email, first_name, last_name, is_active, is_protected, created_at, updated_at
+FROM users
+WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL;

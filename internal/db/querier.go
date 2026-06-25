@@ -28,6 +28,7 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, lower string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
 	GetUserPreferences(ctx context.Context, userID uuid.UUID) (GetUserPreferencesRow, error)
+	GetUsersByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetUsersByIDsRow, error)
 	ListContacts(ctx context.Context, userID uuid.UUID) ([]ListContactsRow, error)
 	ListGroups(ctx context.Context, arg ListGroupsParams) ([]ListGroupsRow, error)
 	ListGroupsByType(ctx context.Context, arg ListGroupsByTypeParams) ([]ListGroupsByTypeRow, error)

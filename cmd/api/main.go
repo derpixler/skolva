@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -16,7 +15,6 @@ import (
 	"github.com/derpixler/skolva/internal/core/database"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
-	"github.com/derpixler/skolva/internal/core/middleware"
 )
 
 func main() {
@@ -72,23 +70,8 @@ func main() {
 		return
 	}
 
-	verify := func(token string) (*middleware.Actor, error) {
-		claims, err := tokenManager.Verify(token)
-		if err != nil {
-			return nil, err
-		}
-		if claims.Kind != auth.TokenKindAccess {
-			return nil, fmt.Errorf("token is not an access token")
-		}
-		return &middleware.Actor{
-			UserID:      claims.Subject,
-			Email:       claims.Email,
-			Roles:       claims.Roles,
-			Permissions: claims.Permissions,
-		}, nil
-	}
-
-	router := app.NewRouter(pools, hookManager, worker, verify)
+	verify := auth.NewVerifier(tokenManager)
+	router := app.NewRouter(pools, hookManager, worker, verify, tokenManager)
 
 	go func() {
 		addr := ":" + cfg.Port

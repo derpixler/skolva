@@ -14,7 +14,7 @@ func TestServiceCheckPermission(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 	repo := auth.NewRepository(pool)
-	svc := auth.NewService(repo)
+	svc := auth.NewService(repo, nil)
 
 	// seed sanity: 47 permissions across 5 roles
 	perms, err := repo.ListPermissions(ctx)
