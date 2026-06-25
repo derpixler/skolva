@@ -64,6 +64,101 @@ paths:
           $ref: "#/components/responses/Error"
         "422":
           $ref: "#/components/responses/Error"
+  /auth/2fa/setup:
+    post:
+      summary: Start 2FA setup (returns provisioning URI + recovery codes)
+      operationId: setup2FA
+      responses:
+        "200":
+          description: Provisioning URI and recovery codes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setup2FAResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/confirm:
+    post:
+      summary: Confirm TOTP code to activate 2FA
+      operationId: confirm2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeRequest"
+      responses:
+        "204":
+          description: 2FA activated
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/verify:
+    post:
+      summary: Verify 2FA code to complete login
+      operationId: verify2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Verify2FARequest"
+      responses:
+        "200":
+          description: Access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/recovery:
+    post:
+      summary: Use a recovery code to complete login
+      operationId: recover2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Verify2FARequest"
+      responses:
+        "200":
+          description: Access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/disable:
+    post:
+      summary: Disable 2FA for the current user
+      operationId: disable2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeRequest"
+      responses:
+        "204":
+          description: 2FA disabled
+        "401":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
   /users:
     get:
       summary: List users
@@ -707,6 +802,32 @@ components:
           type: string
         is_active:
           type: boolean
+    Setup2FAResponse:
+      type: object
+      properties:
+        provisioning_uri:
+          type: string
+        recovery_codes:
+          type: array
+          items:
+            type: string
+    CodeRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+    Verify2FARequest:
+      type: object
+      required:
+        - temp_token
+        - code
+      properties:
+        temp_token:
+          type: string
+        code:
+          type: string
     Group:
       type: object
       properties:

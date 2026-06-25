@@ -29,6 +29,12 @@ func RegisterRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, tm *TokenManager, c
 	rg.POST("/auth/login", h.Login)
 	rg.POST("/auth/register", middleware.RequirePermission("users.write"), h.Register)
 
+	rg.POST("/auth/2fa/setup", middleware.RequireAuth(), h.Setup2FA)
+	rg.POST("/auth/2fa/confirm", middleware.RequireAuth(), h.Confirm2FA)
+	rg.POST("/auth/2fa/verify", h.Verify2FA)
+	rg.POST("/auth/2fa/recovery", h.Recover2FA)
+	rg.POST("/auth/2fa/disable", middleware.RequireAuth(), h.Disable2FA)
+
 	rg.GET("/users", middleware.RequirePermission("users.read"), h.ListUsers)
 	rg.GET("/users/:id", middleware.RequirePermission("users.read"), h.GetUser)
 	rg.PATCH("/users/:id", middleware.RequirePermission("users.write"), h.UpdateUser)
@@ -93,9 +99,13 @@ func (h *Handler) Login(c *gin.Context) {
 		respondError(c, apperrors.NewValidation("email and password are required"))
 		return
 	}
-	token, err := h.svc.Login(c.Request.Context(), req.Email, req.Password)
+	token, needs2FA, tempToken, err := h.svc.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
 		respondError(c, err)
+		return
+	}
+	if needs2FA {
+		c.JSON(http.StatusOK, loginResponse{Requires2FA: true, TempToken: tempToken})
 		return
 	}
 	c.JSON(http.StatusOK, loginResponse{Token: token})
@@ -179,6 +189,98 @@ func (h *Handler) SearchUsers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, users)
+}
+
+func (h *Handler) Setup2FA(c *gin.Context) {
+	userID := actorID(c)
+	uri, codes, err := h.svc.Setup2FA(c.Request.Context(), userID)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, Setup2FAResponse{ProvisioningURI: uri, RecoveryCodes: codes})
+}
+
+func (h *Handler) Confirm2FA(c *gin.Context) {
+	var req codeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("code is required"))
+		return
+	}
+	if err := h.svc.Confirm2FA(c.Request.Context(), actorID(c), req.Code); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) Verify2FA(c *gin.Context) {
+	var req verify2FARequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("temp_token and code are required"))
+		return
+	}
+	claims, err := h.svc.tm.Verify(req.TempToken)
+	if err != nil || claims.Kind != TokenKindPending2FA {
+		respondError(c, apperrors.NewUnauthorized("invalid or expired 2FA token"))
+		return
+	}
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		respondError(c, apperrors.NewUnauthorized("invalid 2FA token"))
+		return
+	}
+	if err := h.svc.Verify2FA(c.Request.Context(), userID, req.Code); err != nil {
+		respondError(c, err)
+		return
+	}
+	token, err := h.svc.IssueAccessForUser(c.Request.Context(), userID)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, loginResponse{Token: token})
+}
+
+func (h *Handler) Recover2FA(c *gin.Context) {
+	var req verify2FARequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("temp_token and code are required"))
+		return
+	}
+	claims, err := h.svc.tm.Verify(req.TempToken)
+	if err != nil || claims.Kind != TokenKindPending2FA {
+		respondError(c, apperrors.NewUnauthorized("invalid or expired 2FA token"))
+		return
+	}
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		respondError(c, apperrors.NewUnauthorized("invalid 2FA token"))
+		return
+	}
+	if err := h.svc.ConsumeRecoveryCode(c.Request.Context(), userID, req.Code); err != nil {
+		respondError(c, err)
+		return
+	}
+	token, err := h.svc.IssueAccessForUser(c.Request.Context(), userID)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, loginResponse{Token: token})
+}
+
+func (h *Handler) Disable2FA(c *gin.Context) {
+	var req codeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("code is required"))
+		return
+	}
+	if err := h.svc.Disable2FA(c.Request.Context(), actorID(c), req.Code); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 func pagination(c *gin.Context) (limit, offset int32) {

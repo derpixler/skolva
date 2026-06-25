@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"time"
 
 	apperrors "github.com/derpixler/skolva/internal/core/errors"
 	"github.com/derpixler/skolva/internal/core/secrets"
@@ -85,23 +86,35 @@ func (s *Service) CheckPermission(ctx context.Context, userID uuid.UUID, permiss
 // Login verifies credentials and returns a signed access token carrying the
 // user's roles and resolved permissions. Invalid email or password yields the
 // same unauthorized error (no user enumeration).
-func (s *Service) Login(ctx context.Context, email, password string) (string, error) {
+func (s *Service) Login(ctx context.Context, email, password string) (token string, needs2FA bool, tempToken string, err error) {
 	u, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", apperrors.NewUnauthorized("invalid credentials")
+			return "", false, "", apperrors.NewUnauthorized("invalid credentials")
 		}
-		return "", err
+		return "", false, "", err
 	}
 	if !u.IsActive {
-		return "", apperrors.NewUnauthorized("account is disabled")
+		return "", false, "", apperrors.NewUnauthorized("account is disabled")
 	}
 	if !VerifyPassword(u.PasswordHash, password) {
-		return "", apperrors.NewUnauthorized("invalid credentials")
+		return "", false, "", apperrors.NewUnauthorized("invalid credentials")
 	}
+
+	// 2FA active -> return a pending token instead of a full access token
+	totpRow, _ := s.repo.GetTOTPSecret(ctx, u.ID)
+	if totpRow.IsEnabled {
+		temp, tmpErr := s.tm.IssuePending2FA(u.ID.String(), 5*time.Minute)
+		if tmpErr != nil {
+			return "", false, "", tmpErr
+		}
+		return "", true, temp, nil
+	}
+
+	// no 2FA -> full access token
 	roleRows, err := s.repo.ListUserRoles(ctx, u.ID)
 	if err != nil {
-		return "", err
+		return "", false, "", err
 	}
 	roles := make([]string, len(roleRows))
 	for i, r := range roleRows {
@@ -109,9 +122,10 @@ func (s *Service) Login(ctx context.Context, email, password string) (string, er
 	}
 	perms, err := s.repo.GetPermissionsForUser(ctx, u.ID)
 	if err != nil {
-		return "", err
+		return "", false, "", err
 	}
-	return s.tm.IssueAccess(u.ID.String(), u.Email, roles, perms)
+	tok, tokErr := s.tm.IssueAccess(u.ID.String(), u.Email, roles, perms)
+	return tok, false, "", tokErr
 }
 
 // --- users ---

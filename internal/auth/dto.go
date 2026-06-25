@@ -33,7 +33,9 @@ type loginRequest struct {
 }
 
 type loginResponse struct {
-	Token string `json:"token"`
+	Token       string `json:"token,omitempty"`
+	Requires2FA bool   `json:"requires_2fa,omitempty"`
+	TempToken   string `json:"temp_token,omitempty"`
 }
 
 type registerRequest struct {
@@ -92,4 +94,18 @@ func userFromUpdate(r db.UpdateUserRow) UserResponse {
 
 func userFromByIDs(r db.GetUsersByIDsRow) UserResponse {
 	return userFrom(r.ID, r.Email, r.FirstName, r.LastName, r.IsActive, r.IsProtected, r.CreatedAt, r.UpdatedAt)
+}
+
+type Setup2FAResponse struct {
+	ProvisioningURI string   `json:"provisioning_uri"`
+	RecoveryCodes   []string `json:"recovery_codes"`
+}
+
+type verify2FARequest struct {
+	TempToken string `json:"temp_token" binding:"required"`
+	Code      string `json:"code" binding:"required"`
+}
+
+type codeRequest struct {
+	Code string `json:"code" binding:"required"`
 }
