@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	apperrors "github.com/derpixler/skolva/internal/core/errors"
+	"github.com/derpixler/skolva/internal/core/secrets"
 	"github.com/derpixler/skolva/internal/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -12,12 +13,13 @@ import (
 
 // Service holds the business logic for the identity module.
 type Service struct {
-	repo *Repository
-	tm   *TokenManager
+	repo   *Repository
+	tm     *TokenManager
+	cipher *secrets.Cipher
 }
 
-func NewService(repo *Repository, tm *TokenManager) *Service {
-	return &Service{repo: repo, tm: tm}
+func NewService(repo *Repository, tm *TokenManager, cipher *secrets.Cipher) *Service {
+	return &Service{repo: repo, tm: tm, cipher: cipher}
 }
 
 func (s *Service) ensureUser(ctx context.Context, userID uuid.UUID) error {

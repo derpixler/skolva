@@ -15,6 +15,7 @@ import (
 	"github.com/derpixler/skolva/internal/core/database"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
+	"github.com/derpixler/skolva/internal/core/secrets"
 )
 
 func main() {
@@ -71,7 +72,12 @@ func main() {
 	}
 
 	verify := auth.NewVerifier(tokenManager)
-	router := app.NewRouter(pools, hookManager, worker, verify, tokenManager)
+	cipher, err := secrets.NewCipher(cfg.EncryptionKey)
+	if err != nil {
+		log.Printf("failed to create secrets cipher: %v", err)
+		return
+	}
+	router := app.NewRouter(pools, hookManager, worker, verify, tokenManager, cipher)
 
 	go func() {
 		addr := ":" + cfg.Port

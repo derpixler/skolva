@@ -6,6 +6,7 @@ import (
 
 	apperrors "github.com/derpixler/skolva/internal/core/errors"
 	"github.com/derpixler/skolva/internal/core/middleware"
+	"github.com/derpixler/skolva/internal/core/secrets"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,8 +23,8 @@ func NewHandler(svc *Service) *Handler {
 
 // RegisterRoutes wires the identity endpoints onto the given /api group,
 // constructing the repository/service from the pool.
-func RegisterRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, tm *TokenManager) {
-	h := NewHandler(NewService(NewRepository(pool), tm))
+func RegisterRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, tm *TokenManager, cipher *secrets.Cipher) {
+	h := NewHandler(NewService(NewRepository(pool), tm, cipher))
 
 	rg.POST("/auth/login", h.Login)
 	rg.POST("/auth/register", middleware.RequirePermission("users.write"), h.Register)

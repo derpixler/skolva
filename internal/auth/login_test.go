@@ -42,7 +42,7 @@ func TestLoginEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	api := r.Group("/api")
-	auth.RegisterRoutes(api, pool, tm)
+	auth.RegisterRoutes(api, pool, tm, nil)
 
 	// valid login -> 200 with a token whose claims carry roles + permissions
 	w := doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"u@example.com","password":"s3cr3t-pw"}`)

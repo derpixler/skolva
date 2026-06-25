@@ -167,3 +167,18 @@ func (r *Repository) SearchUsers(ctx context.Context, q string, limit int) ([]db
 	}
 	return ordered, nil
 }
+
+// --- 2FA (TOTP) ---
+// user_totp_secrets is not audited/soft-deletable -> direct pool.
+
+func (r *Repository) GetTOTPSecret(ctx context.Context, userID uuid.UUID) (db.UserTotpSecret, error) {
+	return r.q.GetTOTPSecret(ctx, userID)
+}
+
+func (r *Repository) UpsertTOTPSecret(ctx context.Context, params db.UpsertTOTPSecretParams) (db.UserTotpSecret, error) {
+	return r.q.UpsertTOTPSecret(ctx, params)
+}
+
+func (r *Repository) DeleteTOTPSecret(ctx context.Context, userID uuid.UUID) error {
+	return r.q.DeleteTOTPSecret(ctx, userID)
+}

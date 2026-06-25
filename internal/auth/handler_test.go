@@ -71,7 +71,7 @@ func TestRoleAssignmentEndpoints(t *testing.T) {
 	r.Use(middleware.Authenticate(verify))
 	r.Use(middleware.ActorMiddleware())
 	api := r.Group("/api")
-	auth.RegisterRoutes(api, pool, nil)
+	auth.RegisterRoutes(api, pool, nil, nil)
 
 	base := "/api/users/" + target.ID.String() + "/roles"
 
