@@ -294,6 +294,174 @@ paths:
           $ref: "#/components/responses/Error"
         "403":
           $ref: "#/components/responses/Error"
+  /users/{id}/address:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: Get a user's address
+      operationId: getUserAddress
+      responses:
+        "200":
+          description: Address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      summary: Create or replace a user's address
+      operationId: putUserAddress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressRequest"
+      responses:
+        "200":
+          description: Updated address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}/preferences:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: Get a user's preferences
+      operationId: getUserPreferences
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preferences"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      summary: Create or replace a user's preferences
+      operationId: putUserPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferencesRequest"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preferences"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}/contacts:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: List a user's contact points
+      operationId: listContacts
+      responses:
+        "200":
+          description: Contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contact"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Create a contact point
+      operationId: createContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContactRequest"
+      responses:
+        "201":
+          description: Created contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}/contacts/{cid}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      summary: Update a contact point
+      operationId: updateContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContactRequest"
+      responses:
+        "200":
+          description: Updated contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: Delete a contact point
+      operationId: deleteContact
+      responses:
+        "204":
+          description: Contact deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
 components:
   parameters:
     UserId:
@@ -407,6 +575,157 @@ components:
         joined_at:
           type: string
           format: date-time
+    Address:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        company:
+          type: string
+        care_of:
+          type: string
+        street1:
+          type: string
+        street2:
+          type: string
+        postal_code:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country_code:
+          type: string
+        note:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AddressRequest:
+      type: object
+      required:
+        - street1
+        - postal_code
+        - city
+        - country_code
+      properties:
+        company:
+          type: string
+        care_of:
+          type: string
+        street1:
+          type: string
+        street2:
+          type: string
+        postal_code:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country_code:
+          type: string
+        note:
+          type: string
+    Preferences:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        preferred_contact_type:
+          type: string
+        note:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+    PreferencesRequest:
+      type: object
+      properties:
+        preferred_contact_type:
+          type: string
+        note:
+          type: string
+    Contact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        contact_type:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
+        is_primary:
+          type: boolean
+        is_preferred:
+          type: boolean
+        allow_contact:
+          type: boolean
+        preferred_time_window:
+          type: string
+        verified_at:
+          type: string
+          format: date-time
+        note:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateContactRequest:
+      type: object
+      required:
+        - contact_type
+        - value
+      properties:
+        contact_type:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
+        is_primary:
+          type: boolean
+        is_preferred:
+          type: boolean
+        allow_contact:
+          type: boolean
+        preferred_time_window:
+          type: string
+        note:
+          type: string
+    UpdateContactRequest:
+      type: object
+      required:
+        - value
+      properties:
+        label:
+          type: string
+        value:
+          type: string
+        is_primary:
+          type: boolean
+        is_preferred:
+          type: boolean
+        allow_contact:
+          type: boolean
+        preferred_time_window:
+          type: string
+        note:
+          type: string
     Error:
       type: object
       properties:

@@ -7,6 +7,7 @@ import (
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
 	"github.com/derpixler/skolva/internal/core/middleware"
+	"github.com/derpixler/skolva/internal/crm"
 	"github.com/derpixler/skolva/internal/groups"
 	"github.com/gin-gonic/gin"
 )
@@ -32,6 +33,7 @@ func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker
 
 		auth.RegisterRoutes(api, pools.Web)
 		groups.RegisterRoutes(api, pools.Web)
+		crm.RegisterRoutes(api, pools.Web)
 
 		api.GET("/openapi.yaml", func(c *gin.Context) {
 			c.Data(200, "application/yaml", apispec.Spec)

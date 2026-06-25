@@ -14,15 +14,21 @@ type Querier interface {
 	AddMember(ctx context.Context, arg AddMemberParams) error
 	AddRolePermission(ctx context.Context, arg AddRolePermissionParams) error
 	AssignRole(ctx context.Context, arg AssignRoleParams) error
+	ClearPrimaryContacts(ctx context.Context, arg ClearPrimaryContactsParams) error
 	CountActiveUsers(ctx context.Context) (int64, error)
+	CreateContact(ctx context.Context, arg CreateContactParams) (CreateContactRow, error)
 	CreateGroup(ctx context.Context, arg CreateGroupParams) (CreateGroupRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	GetContact(ctx context.Context, id uuid.UUID) (GetContactRow, error)
 	GetGroupByID(ctx context.Context, id uuid.UUID) (GetGroupByIDRow, error)
 	GetPermissionsForRole(ctx context.Context, roleSlug string) ([]Permission, error)
 	GetPermissionsForUser(ctx context.Context, userID uuid.UUID) ([]string, error)
 	GetRole(ctx context.Context, slug string) (GetRoleRow, error)
+	GetUserAddress(ctx context.Context, userID uuid.UUID) (GetUserAddressRow, error)
 	GetUserByEmail(ctx context.Context, lower string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
+	GetUserPreferences(ctx context.Context, userID uuid.UUID) (GetUserPreferencesRow, error)
+	ListContacts(ctx context.Context, userID uuid.UUID) ([]ListContactsRow, error)
 	ListGroups(ctx context.Context, arg ListGroupsParams) ([]ListGroupsRow, error)
 	ListGroupsByType(ctx context.Context, arg ListGroupsByTypeParams) ([]ListGroupsByTypeRow, error)
 	ListMembers(ctx context.Context, groupID uuid.UUID) ([]ListMembersRow, error)
@@ -34,10 +40,14 @@ type Querier interface {
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) error
 	RemoveRole(ctx context.Context, arg RemoveRoleParams) error
 	RemoveRolePermission(ctx context.Context, arg RemoveRolePermissionParams) error
+	SoftDeleteContact(ctx context.Context, arg SoftDeleteContactParams) error
 	SoftDeleteGroup(ctx context.Context, arg SoftDeleteGroupParams) error
 	SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) error
+	UpdateContact(ctx context.Context, arg UpdateContactParams) (UpdateContactRow, error)
 	UpdateGroup(ctx context.Context, arg UpdateGroupParams) (UpdateGroupRow, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error)
+	UpsertUserAddress(ctx context.Context, arg UpsertUserAddressParams) (UpsertUserAddressRow, error)
+	UpsertUserPreferences(ctx context.Context, arg UpsertUserPreferencesParams) (UpsertUserPreferencesRow, error)
 	UserExistsByEmail(ctx context.Context, lower string) (bool, error)
 	UserHasPermission(ctx context.Context, arg UserHasPermissionParams) (bool, error)
 	UserHasRole(ctx context.Context, arg UserHasRoleParams) (bool, error)
