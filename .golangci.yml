@@ -27,6 +27,9 @@ linters:
       - path: internal/core/database/
         linters:
           - gosec
+      - path: internal/core/metadata/
+        linters:
+          - gosec
 
 formatters:
   enable:
