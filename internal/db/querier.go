@@ -29,6 +29,7 @@ type Querier interface {
 	SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error)
 	UserExistsByEmail(ctx context.Context, lower string) (bool, error)
+	UserHasPermission(ctx context.Context, arg UserHasPermissionParams) (bool, error)
 	UserHasRole(ctx context.Context, arg UserHasRoleParams) (bool, error)
 }
 

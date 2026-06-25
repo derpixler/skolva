@@ -125,3 +125,9 @@ func (r *Repository) AddRolePermission(ctx context.Context, roleSlug, permission
 func (r *Repository) RemoveRolePermission(ctx context.Context, roleSlug, permissionSlug string) error {
 	return r.q.RemoveRolePermission(ctx, db.RemoveRolePermissionParams{RoleSlug: roleSlug, PermissionSlug: permissionSlug})
 }
+
+// UserHasPermission reports whether the user holds permissionSlug via any of
+// their active roles (role_permissions join).
+func (r *Repository) UserHasPermission(ctx context.Context, userID uuid.UUID, permissionSlug string) (bool, error) {
+	return r.q.UserHasPermission(ctx, db.UserHasPermissionParams{UserID: userID, PermissionSlug: permissionSlug})
+}

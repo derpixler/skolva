@@ -62,3 +62,19 @@ func (s *Service) ListUserRoles(ctx context.Context, userID uuid.UUID) ([]db.Lis
 	}
 	return s.repo.ListUserRoles(ctx, userID)
 }
+
+const adminRole = "admin"
+
+// CheckPermission reports whether the user may perform the action identified by
+// permissionSlug. The admin role grants every permission implicitly; otherwise
+// the permission is resolved via the role_permissions join.
+func (s *Service) CheckPermission(ctx context.Context, userID uuid.UUID, permissionSlug string) (bool, error) {
+	isAdmin, err := s.repo.UserHasRole(ctx, userID, adminRole)
+	if err != nil {
+		return false, err
+	}
+	if isAdmin {
+		return true, nil
+	}
+	return s.repo.UserHasPermission(ctx, userID, permissionSlug)
+}

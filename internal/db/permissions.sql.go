@@ -125,3 +125,25 @@ func (q *Queries) RemoveRolePermission(ctx context.Context, arg RemoveRolePermis
 	_, err := q.db.Exec(ctx, removeRolePermission, arg.RoleSlug, arg.PermissionSlug)
 	return err
 }
+
+const userHasPermission = `-- name: UserHasPermission :one
+SELECT EXISTS (
+  SELECT 1
+  FROM user_roles ur
+  JOIN roles r ON r.slug = ur.role_slug AND r.deleted_at IS NULL
+  JOIN role_permissions rp ON rp.role_slug = ur.role_slug
+  WHERE ur.user_id = $1 AND rp.permission_slug = $2
+)
+`
+
+type UserHasPermissionParams struct {
+	UserID         uuid.UUID `json:"user_id"`
+	PermissionSlug string    `json:"permission_slug"`
+}
+
+func (q *Queries) UserHasPermission(ctx context.Context, arg UserHasPermissionParams) (bool, error) {
+	row := q.db.QueryRow(ctx, userHasPermission, arg.UserID, arg.PermissionSlug)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
