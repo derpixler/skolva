@@ -1,6 +1,8 @@
 package app
 
 import (
+	apispec "github.com/derpixler/skolva/api"
+	"github.com/derpixler/skolva/internal/auth"
 	"github.com/derpixler/skolva/internal/core/database"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
@@ -25,6 +27,12 @@ func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker
 				return
 			}
 			c.JSON(200, gin.H{"status": "healthy"})
+		})
+
+		auth.RegisterRoutes(api, pools.Web)
+
+		api.GET("/openapi.yaml", func(c *gin.Context) {
+			c.Data(200, "application/yaml", apispec.Spec)
 		})
 	}
 

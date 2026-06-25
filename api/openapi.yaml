@@ -1,0 +1,127 @@
+openapi: 3.1.0
+info:
+  title: Skolva API
+  version: 0.2.0
+  description: >
+    Skolva — self-hosted community management platform.
+    Phase 2: Identity (auth, users, roles, permissions).
+servers:
+  - url: /api
+    description: API root
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: health
+      responses:
+        "200":
+          description: Service healthy
+        "503":
+          description: Service unhealthy
+  /users/{id}/roles:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: List a user's roles
+      operationId: listUserRoles
+      responses:
+        "200":
+          description: The user's roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Assign a role to a user
+      operationId: assignRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignRoleRequest"
+      responses:
+        "200":
+          description: The user's updated roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}/roles/{slug}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Remove a role from a user
+      operationId: removeRole
+      responses:
+        "204":
+          description: Role removed
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    Role:
+      type: object
+      properties:
+        slug:
+          type: string
+        display_name:
+          type: string
+        is_protected:
+          type: boolean
+    AssignRoleRequest:
+      type: object
+      required:
+        - role_slug
+      properties:
+        role_slug:
+          type: string
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
