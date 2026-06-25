@@ -28,6 +28,10 @@ func RegisterRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool) {
 	rg.GET("/groups/:id", middleware.RequirePermission("groups.read"), h.Get)
 	rg.PATCH("/groups/:id", middleware.RequirePermission("groups.write"), h.Update)
 	rg.DELETE("/groups/:id", middleware.RequirePermission("groups.write"), h.Delete)
+	rg.GET("/groups/:id/members", middleware.RequirePermission("groups.read"), h.ListMembers)
+	rg.POST("/groups/:id/members", middleware.RequirePermission("groups.write"), h.AddMember)
+	rg.DELETE("/groups/:id/members/:user_id", middleware.RequirePermission("groups.write"), h.RemoveMember)
+	rg.GET("/users/:id/groups", middleware.RequirePermission("groups.read"), h.ListUserGroups)
 }
 
 func (h *Handler) List(c *gin.Context) {
@@ -98,6 +102,76 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) ListMembers(c *gin.Context) {
+	groupID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respondError(c, apperrors.NewValidation("invalid group id"))
+		return
+	}
+	members, err := h.svc.ListMembers(c.Request.Context(), groupID)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, members)
+}
+
+func (h *Handler) AddMember(c *gin.Context) {
+	groupID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respondError(c, apperrors.NewValidation("invalid group id"))
+		return
+	}
+	var req addMemberRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("user_id is required"))
+		return
+	}
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		respondError(c, apperrors.NewValidation("invalid user_id"))
+		return
+	}
+	members, err := h.svc.AddMember(c.Request.Context(), actorID(c), groupID, userID, req.RoleInGroup)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, members)
+}
+
+func (h *Handler) RemoveMember(c *gin.Context) {
+	groupID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respondError(c, apperrors.NewValidation("invalid group id"))
+		return
+	}
+	userID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		respondError(c, apperrors.NewValidation("invalid user id"))
+		return
+	}
+	if err := h.svc.RemoveMember(c.Request.Context(), groupID, userID); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) ListUserGroups(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respondError(c, apperrors.NewValidation("invalid user id"))
+		return
+	}
+	gs, err := h.svc.ListUserGroups(c.Request.Context(), userID)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gs)
 }
 
 func pagination(c *gin.Context) (limit, offset int32) {

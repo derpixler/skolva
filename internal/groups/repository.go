@@ -59,3 +59,23 @@ func (r *Repository) SoftDelete(ctx context.Context, actorID uuid.UUID, params d
 		return db.New(tx).SoftDeleteGroup(ctx, params)
 	})
 }
+
+// --- members ---
+// group_members is neither audited nor soft-deletable -> direct pool writes;
+// created_by records who added the member.
+
+func (r *Repository) AddMember(ctx context.Context, params db.AddMemberParams) error {
+	return r.q.AddMember(ctx, params)
+}
+
+func (r *Repository) RemoveMember(ctx context.Context, groupID, userID uuid.UUID) error {
+	return r.q.RemoveMember(ctx, db.RemoveMemberParams{GroupID: groupID, UserID: userID})
+}
+
+func (r *Repository) ListMembers(ctx context.Context, groupID uuid.UUID) ([]db.ListMembersRow, error) {
+	return r.q.ListMembers(ctx, groupID)
+}
+
+func (r *Repository) ListUserGroups(ctx context.Context, userID uuid.UUID) ([]db.ListUserGroupsRow, error) {
+	return r.q.ListUserGroups(ctx, userID)
+}

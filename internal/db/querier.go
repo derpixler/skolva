@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	AddMember(ctx context.Context, arg AddMemberParams) error
 	AddRolePermission(ctx context.Context, arg AddRolePermissionParams) error
 	AssignRole(ctx context.Context, arg AssignRoleParams) error
 	CountActiveUsers(ctx context.Context) (int64, error)
@@ -24,10 +25,13 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
 	ListGroups(ctx context.Context, arg ListGroupsParams) ([]ListGroupsRow, error)
 	ListGroupsByType(ctx context.Context, arg ListGroupsByTypeParams) ([]ListGroupsByTypeRow, error)
+	ListMembers(ctx context.Context, groupID uuid.UUID) ([]ListMembersRow, error)
 	ListPermissions(ctx context.Context) ([]Permission, error)
 	ListRoles(ctx context.Context) ([]ListRolesRow, error)
+	ListUserGroups(ctx context.Context, userID uuid.UUID) ([]ListUserGroupsRow, error)
 	ListUserRoles(ctx context.Context, userID uuid.UUID) ([]ListUserRolesRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error)
+	RemoveMember(ctx context.Context, arg RemoveMemberParams) error
 	RemoveRole(ctx context.Context, arg RemoveRoleParams) error
 	RemoveRolePermission(ctx context.Context, arg RemoveRolePermissionParams) error
 	SoftDeleteGroup(ctx context.Context, arg SoftDeleteGroupParams) error

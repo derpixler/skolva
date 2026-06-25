@@ -126,3 +126,83 @@ func (s *Service) Delete(ctx context.Context, actorID, id uuid.UUID) error {
 	}
 	return s.repo.SoftDelete(ctx, actorID, db.SoftDeleteGroupParams{ID: id, UpdatedBy: actorNull(actorID)})
 }
+
+// --- members ---
+
+var validMemberRoles = map[string]bool{
+	"leiter":         true,
+	"stellvertreter": true,
+	"trainer":        true,
+	"mitglied":       true,
+}
+
+func (s *Service) ensureGroup(ctx context.Context, id uuid.UUID) error {
+	if _, err := s.repo.GetByID(ctx, id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apperrors.NewNotFound("group")
+		}
+		return err
+	}
+	return nil
+}
+
+func (s *Service) members(ctx context.Context, groupID uuid.UUID) ([]Member, error) {
+	rows, err := s.repo.ListMembers(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Member, len(rows))
+	for i, r := range rows {
+		out[i] = memberFrom(r)
+	}
+	return out, nil
+}
+
+// AddMember adds (or, on conflict, re-roles) a user in the group and returns
+// the updated member list. roleInGroup defaults to "mitglied".
+func (s *Service) AddMember(ctx context.Context, actorID, groupID, userID uuid.UUID, roleInGroup string) ([]Member, error) {
+	if err := s.ensureGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	if roleInGroup == "" {
+		roleInGroup = "mitglied"
+	}
+	if !validMemberRoles[roleInGroup] {
+		return nil, apperrors.NewValidation("invalid role_in_group")
+	}
+	if err := s.repo.AddMember(ctx, db.AddMemberParams{
+		GroupID:     groupID,
+		UserID:      userID,
+		RoleInGroup: roleInGroup,
+		CreatedBy:   actorNull(actorID),
+	}); err != nil {
+		return nil, err
+	}
+	return s.members(ctx, groupID)
+}
+
+func (s *Service) ListMembers(ctx context.Context, groupID uuid.UUID) ([]Member, error) {
+	if err := s.ensureGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	return s.members(ctx, groupID)
+}
+
+func (s *Service) RemoveMember(ctx context.Context, groupID, userID uuid.UUID) error {
+	if err := s.ensureGroup(ctx, groupID); err != nil {
+		return err
+	}
+	return s.repo.RemoveMember(ctx, groupID, userID)
+}
+
+func (s *Service) ListUserGroups(ctx context.Context, userID uuid.UUID) ([]UserGroup, error) {
+	rows, err := s.repo.ListUserGroups(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]UserGroup, len(rows))
+	for i, r := range rows {
+		out[i] = userGroupFrom(r)
+	}
+	return out, nil
+}

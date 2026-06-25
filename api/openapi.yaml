@@ -197,6 +197,103 @@ paths:
           $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
+  /groups/{id}/members:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: List group members
+      operationId: listGroupMembers
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Add or re-role a group member
+      operationId: addGroupMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMemberRequest"
+      responses:
+        "200":
+          description: Updated members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /groups/{id}/members/{user_id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      summary: Remove a group member
+      operationId: removeGroupMember
+      responses:
+        "204":
+          description: Member removed
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /users/{id}/groups:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: List a user's groups
+      operationId: listUserGroups
+      responses:
+        "200":
+          description: The user's groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserGroup"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
 components:
   parameters:
     UserId:
@@ -268,6 +365,48 @@ components:
           type: string
         is_active:
           type: boolean
+    Member:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+        role_in_group:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+    AddMemberRequest:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        role_in_group:
+          type: string
+    UserGroup:
+      type: object
+      properties:
+        group_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        group_type:
+          type: string
+        role_in_group:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
     Error:
       type: object
       properties:
