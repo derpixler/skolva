@@ -11,14 +11,25 @@ import (
 )
 
 type Querier interface {
+	AddRolePermission(ctx context.Context, arg AddRolePermissionParams) error
+	AssignRole(ctx context.Context, arg AssignRoleParams) error
 	CountActiveUsers(ctx context.Context) (int64, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	GetPermissionsForRole(ctx context.Context, roleSlug string) ([]Permission, error)
+	GetPermissionsForUser(ctx context.Context, userID uuid.UUID) ([]string, error)
+	GetRole(ctx context.Context, slug string) (GetRoleRow, error)
 	GetUserByEmail(ctx context.Context, lower string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
+	ListPermissions(ctx context.Context) ([]Permission, error)
+	ListRoles(ctx context.Context) ([]ListRolesRow, error)
+	ListUserRoles(ctx context.Context, userID uuid.UUID) ([]ListUserRolesRow, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error)
+	RemoveRole(ctx context.Context, arg RemoveRoleParams) error
+	RemoveRolePermission(ctx context.Context, arg RemoveRolePermissionParams) error
 	SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error)
 	UserExistsByEmail(ctx context.Context, lower string) (bool, error)
+	UserHasRole(ctx context.Context, arg UserHasRoleParams) (bool, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -70,3 +70,58 @@ func (r *Repository) SoftDeleteUser(ctx context.Context, actorID uuid.UUID, para
 		return db.New(tx).SoftDeleteUser(ctx, params)
 	})
 }
+
+// --- roles & user_roles ---
+//
+// user_roles is neither audited nor soft-deletable, so its writes run directly
+// on the pool; assignedBy records who performed the assignment.
+
+func (r *Repository) ListRoles(ctx context.Context) ([]db.ListRolesRow, error) {
+	return r.q.ListRoles(ctx)
+}
+
+func (r *Repository) GetRole(ctx context.Context, slug string) (db.GetRoleRow, error) {
+	return r.q.GetRole(ctx, slug)
+}
+
+func (r *Repository) AssignRole(ctx context.Context, userID uuid.UUID, roleSlug string, assignedBy uuid.NullUUID) error {
+	return r.q.AssignRole(ctx, db.AssignRoleParams{UserID: userID, RoleSlug: roleSlug, AssignedBy: assignedBy})
+}
+
+func (r *Repository) RemoveRole(ctx context.Context, userID uuid.UUID, roleSlug string) error {
+	return r.q.RemoveRole(ctx, db.RemoveRoleParams{UserID: userID, RoleSlug: roleSlug})
+}
+
+func (r *Repository) ListUserRoles(ctx context.Context, userID uuid.UUID) ([]db.ListUserRolesRow, error) {
+	return r.q.ListUserRoles(ctx, userID)
+}
+
+func (r *Repository) UserHasRole(ctx context.Context, userID uuid.UUID, roleSlug string) (bool, error) {
+	return r.q.UserHasRole(ctx, db.UserHasRoleParams{UserID: userID, RoleSlug: roleSlug})
+}
+
+// --- permissions & role_permissions ---
+//
+// role_permissions is neither audited nor soft-deletable -> direct pool writes.
+
+func (r *Repository) ListPermissions(ctx context.Context) ([]db.Permission, error) {
+	return r.q.ListPermissions(ctx)
+}
+
+// GetPermissionsForUser resolves the user's effective permission slugs via
+// user_roles -> role_permissions (active roles only). Used for JWT claims.
+func (r *Repository) GetPermissionsForUser(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	return r.q.GetPermissionsForUser(ctx, userID)
+}
+
+func (r *Repository) GetPermissionsForRole(ctx context.Context, roleSlug string) ([]db.Permission, error) {
+	return r.q.GetPermissionsForRole(ctx, roleSlug)
+}
+
+func (r *Repository) AddRolePermission(ctx context.Context, roleSlug, permissionSlug string) error {
+	return r.q.AddRolePermission(ctx, db.AddRolePermissionParams{RoleSlug: roleSlug, PermissionSlug: permissionSlug})
+}
+
+func (r *Repository) RemoveRolePermission(ctx context.Context, roleSlug, permissionSlug string) error {
+	return r.q.RemoveRolePermission(ctx, db.RemoveRolePermissionParams{RoleSlug: roleSlug, PermissionSlug: permissionSlug})
+}
