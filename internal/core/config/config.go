@@ -14,6 +14,7 @@ type Config struct {
 	Env              string
 	DatabaseURL      string
 	JWTSecret        string
+	EncryptionKey    string
 	JWTExpiryHours   int
 	ZFARequiredRoles []string
 	AIProviderURL    string
@@ -43,6 +44,7 @@ func Load() (*Config, error) {
 		Env:              getEnv("APP_ENV", "development"),
 		DatabaseURL:      requireEnv("DATABASE_URL"),
 		JWTSecret:        requireEnv("JWT_SECRET"),
+		EncryptionKey:    requireEnv("ENCRYPTION_KEY"),
 		JWTExpiryHours:   getEnvInt("JWT_EXPIRY_HOURS", 24),
 		ZFARequiredRoles: getEnvSlice("ZFA_REQUIRED_ROLES", []string{"admin", "vorstand", "kassierer"}),
 		AIProviderURL:    getEnv("AI_PROVIDER_URL", ""),

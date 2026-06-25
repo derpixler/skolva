@@ -15,12 +15,16 @@ func setEnv(t *testing.T, key, value string) {
 func TestLoadDefaults(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://test:test@localhost:5432/test")
 	t.Setenv("JWT_SECRET", "test-secret")
+	t.Setenv("ENCRYPTION_KEY", "test-encryption-key")
 
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	if cfg.EncryptionKey != "test-encryption-key" {
+		t.Errorf("unexpected encryption key: %s", cfg.EncryptionKey)
+	}
 	if cfg.Port != "8080" {
 		t.Errorf("expected port 8080, got %s", cfg.Port)
 	}
@@ -38,6 +42,7 @@ func TestLoadDefaults(t *testing.T) {
 func TestLoadOverrides(t *testing.T) {
 	setEnv(t, "DATABASE_URL", "postgres://test:test@localhost:5432/test")
 	setEnv(t, "JWT_SECRET", "test-secret")
+	setEnv(t, "ENCRYPTION_KEY", "test-encryption-key")
 	setEnv(t, "APP_PORT", "9090")
 	setEnv(t, "APP_ENV", "production")
 	setEnv(t, "JWT_EXPIRY_HOURS", "48")
@@ -71,9 +76,24 @@ func TestLoadMissingRequired(t *testing.T) {
 	_, _ = config.Load()
 }
 
+func TestLoadMissingEncryptionKey(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://test:test@localhost:5432/test")
+	t.Setenv("JWT_SECRET", "test-secret")
+	_ = os.Unsetenv("ENCRYPTION_KEY")
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic for missing ENCRYPTION_KEY")
+		}
+	}()
+
+	_, _ = config.Load()
+}
+
 func TestModulesEnabled(t *testing.T) {
 	setEnv(t, "DATABASE_URL", "postgres://test:test@localhost:5432/test")
 	setEnv(t, "JWT_SECRET", "test-secret")
+	setEnv(t, "ENCRYPTION_KEY", "test-encryption-key")
 	setEnv(t, "MODULES_ENABLED", "auth,groups,billing")
 
 	cfg, err := config.Load()
@@ -98,6 +118,7 @@ func TestModulesEnabled(t *testing.T) {
 func TestAIGDPRModeDisabled(t *testing.T) {
 	setEnv(t, "DATABASE_URL", "postgres://test:test@localhost:5432/test")
 	setEnv(t, "JWT_SECRET", "test-secret")
+	setEnv(t, "ENCRYPTION_KEY", "test-encryption-key")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -112,6 +133,7 @@ func TestAIGDPRModeDisabled(t *testing.T) {
 func TestStorageBackend(t *testing.T) {
 	setEnv(t, "DATABASE_URL", "postgres://test:test@localhost:5432/test")
 	setEnv(t, "JWT_SECRET", "test-secret")
+	setEnv(t, "ENCRYPTION_KEY", "test-encryption-key")
 	setEnv(t, "STORAGE_BACKEND", "s3")
 	setEnv(t, "S3_ENDPOINT", "http://minio:9000")
 
