@@ -12,7 +12,13 @@ import (
 
 type Querier interface {
 	CountActiveUsers(ctx context.Context) (int64, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	GetUserByEmail(ctx context.Context, lower string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
+	ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error)
+	SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) error
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error)
+	UserExistsByEmail(ctx context.Context, lower string) (bool, error)
 }
 
 var _ Querier = (*Queries)(nil)

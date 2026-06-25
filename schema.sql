@@ -1781,13 +1781,14 @@ BEGIN
     RETURN NEW;
   ELSIF TG_OP = 'UPDATE' THEN
     record_id := NEW.id::TEXT;
-    IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
+    IF (to_jsonb(OLD)->>'deleted_at') IS NULL AND (to_jsonb(NEW)->>'deleted_at') IS NOT NULL THEN
       act := 'DELETE';
-    ELSIF (TG_TABLE_NAME = 'leases' OR TG_TABLE_NAME = 'deposits' OR TG_TABLE_NAME = 'expense_claims' OR TG_TABLE_NAME = 'applicants' OR TG_TABLE_NAME = 'lending_records'
-      OR TG_TABLE_NAME = 'dunning_notices' OR TG_TABLE_NAME = 'warnings' OR TG_TABLE_NAME = 'terminations' OR TG_TABLE_NAME = 'incidents' OR TG_TABLE_NAME = 'work_events')
-      AND OLD.status IS DISTINCT FROM NEW.status THEN
+    ELSIF TG_TABLE_NAME IN ('leases','deposits','expense_claims','applicants','lending_records',
+                            'dunning_notices','warnings','terminations','incidents','work_events')
+      AND (to_jsonb(OLD)->>'status') IS DISTINCT FROM (to_jsonb(NEW)->>'status') THEN
       act := 'STATUS_CHANGE';
-    ELSIF TG_TABLE_NAME = 'users' AND OLD.anonymized_at IS NULL AND NEW.anonymized_at IS NOT NULL THEN
+    ELSIF TG_TABLE_NAME = 'users'
+      AND (to_jsonb(OLD)->>'anonymized_at') IS NULL AND (to_jsonb(NEW)->>'anonymized_at') IS NOT NULL THEN
       act := 'ANONYMIZE';
     ELSE
       act := 'UPDATE';

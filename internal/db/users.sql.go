@@ -23,6 +23,91 @@ func (q *Queries) CountActiveUsers(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (email, password_hash, first_name, last_name, created_by, updated_by)
+VALUES ($1, $2, $3, $4, $5, $5)
+RETURNING id, email, first_name, last_name, is_active, is_protected, created_at, updated_at, deleted_at
+`
+
+type CreateUserParams struct {
+	Email        string        `json:"email"`
+	PasswordHash string        `json:"password_hash"`
+	FirstName    string        `json:"first_name"`
+	LastName     string        `json:"last_name"`
+	Actor        uuid.NullUUID `json:"actor"`
+}
+
+type CreateUserRow struct {
+	ID          uuid.UUID          `json:"id"`
+	Email       string             `json:"email"`
+	FirstName   string             `json:"first_name"`
+	LastName    string             `json:"last_name"`
+	IsActive    bool               `json:"is_active"`
+	IsProtected bool               `json:"is_protected"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Email,
+		arg.PasswordHash,
+		arg.FirstName,
+		arg.LastName,
+		arg.Actor,
+	)
+	var i CreateUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.IsActive,
+		&i.IsProtected,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, password_hash, first_name, last_name, is_active, is_protected,
+       created_at, updated_at
+FROM users
+WHERE lower(email) = lower($1) AND deleted_at IS NULL AND anonymized_at IS NULL
+`
+
+type GetUserByEmailRow struct {
+	ID           uuid.UUID          `json:"id"`
+	Email        string             `json:"email"`
+	PasswordHash string             `json:"password_hash"`
+	FirstName    string             `json:"first_name"`
+	LastName     string             `json:"last_name"`
+	IsActive     bool               `json:"is_active"`
+	IsProtected  bool               `json:"is_protected"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, lower string) (GetUserByEmailRow, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, lower)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FirstName,
+		&i.LastName,
+		&i.IsActive,
+		&i.IsProtected,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, email, first_name, last_name, is_active, is_protected,
        created_at, updated_at, deleted_at
@@ -57,4 +142,142 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const listUsers = `-- name: ListUsers :many
+SELECT id, email, first_name, last_name, is_active, is_protected,
+       created_at, updated_at
+FROM users
+WHERE deleted_at IS NULL
+ORDER BY last_name, first_name, id
+LIMIT $1 OFFSET $2
+`
+
+type ListUsersParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type ListUsersRow struct {
+	ID          uuid.UUID          `json:"id"`
+	Email       string             `json:"email"`
+	FirstName   string             `json:"first_name"`
+	LastName    string             `json:"last_name"`
+	IsActive    bool               `json:"is_active"`
+	IsProtected bool               `json:"is_protected"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error) {
+	rows, err := q.db.Query(ctx, listUsers, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUsersRow{}
+	for rows.Next() {
+		var i ListUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.FirstName,
+			&i.LastName,
+			&i.IsActive,
+			&i.IsProtected,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const softDeleteUser = `-- name: SoftDeleteUser :exec
+UPDATE users
+SET deleted_at = NOW(), updated_by = $1
+WHERE id = $2 AND deleted_at IS NULL
+`
+
+type SoftDeleteUserParams struct {
+	UpdatedBy uuid.NullUUID `json:"updated_by"`
+	ID        uuid.UUID     `json:"id"`
+}
+
+func (q *Queries) SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) error {
+	_, err := q.db.Exec(ctx, softDeleteUser, arg.UpdatedBy, arg.ID)
+	return err
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE users
+SET first_name = $1,
+    last_name = $2,
+    is_active = $3,
+    updated_by = $4
+WHERE id = $5 AND deleted_at IS NULL
+RETURNING id, email, first_name, last_name, is_active, is_protected,
+          created_at, updated_at, deleted_at
+`
+
+type UpdateUserParams struct {
+	FirstName string        `json:"first_name"`
+	LastName  string        `json:"last_name"`
+	IsActive  bool          `json:"is_active"`
+	UpdatedBy uuid.NullUUID `json:"updated_by"`
+	ID        uuid.UUID     `json:"id"`
+}
+
+type UpdateUserRow struct {
+	ID          uuid.UUID          `json:"id"`
+	Email       string             `json:"email"`
+	FirstName   string             `json:"first_name"`
+	LastName    string             `json:"last_name"`
+	IsActive    bool               `json:"is_active"`
+	IsProtected bool               `json:"is_protected"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
+	row := q.db.QueryRow(ctx, updateUser,
+		arg.FirstName,
+		arg.LastName,
+		arg.IsActive,
+		arg.UpdatedBy,
+		arg.ID,
+	)
+	var i UpdateUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.IsActive,
+		&i.IsProtected,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const userExistsByEmail = `-- name: UserExistsByEmail :one
+SELECT EXISTS (
+  SELECT 1 FROM users
+  WHERE lower(email) = lower($1) AND deleted_at IS NULL AND anonymized_at IS NULL
+)
+`
+
+func (q *Queries) UserExistsByEmail(ctx context.Context, lower string) (bool, error) {
+	row := q.db.QueryRow(ctx, userExistsByEmail, lower)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
