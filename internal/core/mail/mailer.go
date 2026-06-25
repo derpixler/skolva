@@ -6,6 +6,7 @@ type Message struct {
 	To      []string
 	Subject string
 	Body    string
+	HTML    string
 }
 
 type Mailer interface {
