@@ -2,17 +2,21 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/derpixler/skolva/internal/app"
+	"github.com/derpixler/skolva/internal/auth"
 	"github.com/derpixler/skolva/internal/core/ai"
 	"github.com/derpixler/skolva/internal/core/config"
 	"github.com/derpixler/skolva/internal/core/database"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
+	"github.com/derpixler/skolva/internal/core/middleware"
 )
 
 func main() {
@@ -62,7 +66,29 @@ func main() {
 
 	jobs.StartScheduler(ctx, worker.Client())
 
-	router := app.NewRouter(pools, hookManager, worker)
+	tokenManager, err := auth.NewTokenManager(cfg.JWTSecret, time.Duration(cfg.JWTExpiryHours)*time.Hour)
+	if err != nil {
+		log.Printf("failed to create token manager: %v", err)
+		return
+	}
+
+	verify := func(token string) (*middleware.Actor, error) {
+		claims, err := tokenManager.Verify(token)
+		if err != nil {
+			return nil, err
+		}
+		if claims.Kind != auth.TokenKindAccess {
+			return nil, fmt.Errorf("token is not an access token")
+		}
+		return &middleware.Actor{
+			UserID:      claims.Subject,
+			Email:       claims.Email,
+			Roles:       claims.Roles,
+			Permissions: claims.Permissions,
+		}, nil
+	}
+
+	router := app.NewRouter(pools, hookManager, worker, verify)
 
 	go func() {
 		addr := ":" + cfg.Port

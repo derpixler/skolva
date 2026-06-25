@@ -12,10 +12,13 @@ import (
 	"github.com/derpixler/skolva/internal/core/database"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
+	"github.com/derpixler/skolva/internal/core/middleware"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+func noopVerifier(string) (*middleware.Actor, error) { return nil, nil }
 
 func TestNewRouterHealth(t *testing.T) {
 	if os.Getenv("SKIP_INTEGRATION") == "1" {
@@ -58,7 +61,7 @@ func TestNewRouterHealth(t *testing.T) {
 		t.Fatalf("failed to create worker: %v", err)
 	}
 
-	router := app.NewRouter(pools, hm, worker)
+	router := app.NewRouter(pools, hm, worker, noopVerifier)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/health", nil)
@@ -110,7 +113,7 @@ func TestNewRouterUnhealthy(t *testing.T) {
 		t.Fatalf("failed to create worker: %v", err)
 	}
 
-	router := app.NewRouter(pools, hm, worker)
+	router := app.NewRouter(pools, hm, worker, noopVerifier)
 
 	pools.Close()
 
