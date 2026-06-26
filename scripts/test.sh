@@ -113,8 +113,9 @@ show_menu() {
 
 run_step() {
     local step="$1"
-    case "$step" in
+	case "$step" in
         all)   s_run_all ;;
+        help|--help) show_menu; echo "Usage: $0 [--ci] [step...]  (steps: $(echo "${ALL_STEPS[@]}" | grep -oE '[0-9a-z]+:' | tr -d ':' | tr '\n' ' '))" ;;
         01)    s_prerequisites ;;
         02)    s_build ;;
         03)    s_lint ;;
