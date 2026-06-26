@@ -1,9 +1,19 @@
+// Package middleware provides HTTP middleware for the Gin router.
+//
+// Included middleware:
+//
+//	CORS         — permissive cross-origin headers for development.
+//	RequestID    — propagates or generates an X-Request-ID header.
+//	AuthSkeleton — placeholder JWT parser (hardcoded "test-token").
+//	Actor        — reads the actor from the Gin context.
 package middleware
 
 import (
 	"github.com/gin-gonic/gin"
 )
 
+// CORS sets permissive cross-origin headers. In production this should be
+// replaced with a stricter configuration that whitelists specific origins.
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")

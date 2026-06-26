@@ -1,3 +1,4 @@
+// Package app wires the Gin HTTP router, middleware stack, and health endpoint.
 package app
 
 import (
@@ -14,6 +15,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// NewRouter returns a Gin engine with the standard middleware stack, health
+// endpoint, module routes (auth, crm, groups), OpenAPI spec serve, and API docs.
 func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker, verify middleware.Verifier, tm *auth.TokenManager, cipher *secrets.Cipher, mailer mail.Mailer) *gin.Engine {
 	router := gin.New()
 
