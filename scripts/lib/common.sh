@@ -43,7 +43,7 @@ fi
 export PATH="$GO_BIN_DIR:$HOME/go/bin:$PATH"
 
 # --- State ---
-PASSED=0; FAILED=0
+PASSED=0; FAILED=0; FAILED_STEPS=()
 
 # --- Docker / tool checks ---
 docker_available() { docker info &>/dev/null 2>&1; }
@@ -73,7 +73,7 @@ run_cmd() {
     local desc="$1"; shift
     echo -e "  ${BLUE}\$${NC} $*"
     if "$@"; then echo -e "  ${GREEN}[PASS]${NC} ${desc}"; PASSED=$((PASSED + 1)); return 0
-    else echo -e "  ${RED}[FAIL]${NC} ${desc}"; FAILED=$((FAILED + 1)); return 1; fi
+    else echo -e "  ${RED}[FAIL]${NC} ${desc}"; FAILED=$((FAILED + 1)); FAILED_STEPS+=("$desc"); return 1; fi
 }
 
 run_go_test() {
@@ -81,7 +81,7 @@ run_go_test() {
     echo -e "  ${BLUE}\$${NC} go test $* ${pkg}"
     if go test -count=1 "$@" "$pkg" 2>&1 | sed 's/^/  /'; then
         echo -e "  ${GREEN}[PASS]${NC} ${desc}"; PASSED=$((PASSED + 1)); return 0
-    else local rc=$?; echo -e "  ${RED}[FAIL]${NC} ${desc} (exit code $rc)"; FAILED=$((FAILED + 1)); return 1; fi
+    else local rc=$?; echo -e "  ${RED}[FAIL]${NC} ${desc} (exit code $rc)"; FAILED=$((FAILED + 1)); FAILED_STEPS+=("$desc"); return 1; fi
 }
 
 summary() {
@@ -89,7 +89,10 @@ summary() {
     local total=$((PASSED + FAILED))
     echo -e "  Results: ${GREEN}${PASSED} passed${NC}, ${RED}${FAILED} failed${NC}, ${total} total"
     if [[ $FAILED -eq 0 ]]; then echo -e "  ${GREEN}${BOLD}All checks passed.${NC}"
-    else echo -e "  ${RED}${BOLD}${FAILED} check(s) failed.${NC}"; fi
+    else
+        echo -e "  ${RED}${BOLD}${FAILED} check(s) failed.${NC}"
+        for f in "${FAILED_STEPS[@]}"; do echo -e "    ${RED}✗${NC} $f"; done
+    fi
     echo -e "${BLUE}============================================${NC}"
 }
 
@@ -124,7 +127,7 @@ s_coverage() {
     if echo "$pct $threshold" | awk '{exit ($1 >= $2 ? 0 : 1)}'; then
         echo -e "  ${GREEN}[PASS]${NC} Coverage ${total} >= ${threshold}% threshold"; PASSED=$((PASSED + 1))
     else
-        echo -e "  ${RED}[FAIL]${NC} Coverage ${total} < ${threshold}% threshold"; FAILED=$((FAILED + 1))
+        echo -e "  ${RED}[FAIL]${NC} Coverage ${total} < ${threshold}% threshold"; FAILED=$((FAILED + 1)); FAILED_STEPS+=("Coverage ${total} < ${threshold}%")
     fi
     echo ""; echo "  Per-package coverage:"
     go tool cover -func=coverage.out | grep -v "total:" | grep "0.0%" | sed 's/^/  /'
@@ -144,11 +147,11 @@ s_docker_compose() {
         "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null | tr -d '[:space:]')
     if [[ -n "$table_count" && "$table_count" -ge 10 ]]; then
         echo -e "  ${GREEN}[PASS]${NC} PostgreSQL: ${table_count} tables"; PASSED=$((PASSED + 1))
-    else echo -e "  ${RED}[FAIL]${NC} PostgreSQL: could not query table count"; FAILED=$((FAILED + 1)); fi
+    else echo -e "  ${RED}[FAIL]${NC} PostgreSQL: could not query table count"; FAILED=$((FAILED + 1)); FAILED_STEPS+=("PostgreSQL"); fi
     step "minio" "MinIO — health check"
     local minio_status; minio_status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:9000/minio/health/live 2>/dev/null || echo "000")
     if [[ "$minio_status" == "200" ]]; then echo -e "  ${GREEN}[PASS]${NC} MinIO: HTTP ${minio_status}"; PASSED=$((PASSED + 1))
-    else echo -e "  ${RED}[FAIL]${NC} MinIO: HTTP ${minio_status}"; FAILED=$((FAILED + 1)); fi
+    else echo -e "  ${RED}[FAIL]${NC} MinIO: HTTP ${minio_status}"; FAILED=$((FAILED + 1)); FAILED_STEPS+=("MinIO"); fi
     step "down"  "Stop services"
     run_cmd "docker compose down -v" docker compose down -v
 }
@@ -162,7 +165,7 @@ s_docker_build() {
     step "exists" "Image exists"
     if docker images skolva --format "{{.Repository}}:{{.Tag}} — {{.Size}}" 2>/dev/null | head -1; then
         echo -e "  ${GREEN}[PASS]${NC} Image created"; PASSED=$((PASSED + 1))
-    else echo -e "  ${RED}[FAIL]${NC} Image not found"; FAILED=$((FAILED + 1)); fi
+    else echo -e "  ${RED}[FAIL]${NC} Image not found"; FAILED=$((FAILED + 1)); FAILED_STEPS+=("Docker image"); fi
     step "health" "Health check via docker-compose.prod.yml"
     echo "  Starting app with production compose..."
     docker compose -f docker-compose.prod.yml up -d 2>/dev/null | sed 's/^/  /'
@@ -178,7 +181,7 @@ s_docker_build() {
     else
         echo "  Response: ${health}"; echo -e "${YELLOW}App logs (last 10 lines):${NC}"
         docker compose -f docker-compose.prod.yml logs --tail 10 app 2>/dev/null | sed 's/^/    /' || true
-        echo -e "  ${RED}[FAIL]${NC} Health endpoint failed"; FAILED=$((FAILED + 1))
+        echo -e "  ${RED}[FAIL]${NC} Health endpoint failed"; FAILED=$((FAILED + 1)); FAILED_STEPS+=("Docker health")
     fi
     step "cleanup" "Cleanup prod compose"
     docker compose -f docker-compose.prod.yml down -v 2>/dev/null | sed 's/^/  /'
