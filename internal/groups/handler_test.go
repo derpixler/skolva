@@ -147,4 +147,17 @@ func TestGroupEndpoints(t *testing.T) {
 	if w := doReq(t, r, http.MethodPost, "/api/groups", "weak", `{"name":"A","group_type":"sonstige"}`); w.Code != http.StatusForbidden {
 		t.Errorf("weak: expected 403, got %d", w.Code)
 	}
+
+	// delete nonexistent group -> 404
+	if w := doReq(t, r, http.MethodDelete, "/api/groups/"+uuid.NewString(), "admin", ""); w.Code != http.StatusNotFound {
+		t.Errorf("delete unknown group: expected 404, got %d", w.Code)
+	}
+	// list with pagination query params
+	if w := doReq(t, r, http.MethodGet, "/api/groups?limit=5&offset=0", "admin", ""); w.Code != http.StatusOK {
+		t.Errorf("list with limit: expected 200, got %d", w.Code)
+	}
+	// list with invalid limit -> falls back to default (200)
+	if w := doReq(t, r, http.MethodGet, "/api/groups?limit=abc", "admin", ""); w.Code != http.StatusOK {
+		t.Errorf("list with invalid limit: expected 200, got %d", w.Code)
+	}
 }

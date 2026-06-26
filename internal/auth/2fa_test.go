@@ -86,7 +86,13 @@ func Test2FAFlow(t *testing.T) {
 		t.Fatalf("generate TOTP code (secret=%q): err=%v", totpSecret, err)
 	}
 
-	// 3) confirm 2FA
+	// 3) confirm 2FA — wrong code first
+	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/confirm", bearer, `{"code":"000000"}`)
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Errorf("confirm wrong code: expected 422, got %d", w.Code)
+	}
+
+	// confirm with valid code
 	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/confirm", bearer, `{"code":"`+validCode+`"}`)
 	if w.Code != http.StatusNoContent {
 		t.Fatalf("confirm: %d %s", w.Code, w.Body.String())
@@ -147,6 +153,12 @@ func Test2FAFlow(t *testing.T) {
 	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/verify", "", verifyBody)
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	fullToken := resp.Token
+
+	// disable with wrong code -> 401 (Verify2FA returns unauthorized)
+	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/disable", fullToken, `{"code":"000000"}`)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("disable wrong code: expected 401, got %d", w.Code)
+	}
 
 	validCode3, _ := totp.GenerateCode(string(totpSecret), time.Now())
 	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/disable", fullToken, `{"code":"`+validCode3+`"}`)

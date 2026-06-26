@@ -164,4 +164,9 @@ func TestSearchUsers(t *testing.T) {
 	if len(res) != 0 {
 		t.Errorf("expected soft-deleted user excluded, got %d", len(res))
 	}
+
+	// limit > maxLimit (100) is clamped
+	if _, err := s.Search(ctx, pool, "Schmidt", 200); err != nil {
+		t.Errorf("search with high limit: %v", err)
+	}
 }

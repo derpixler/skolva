@@ -118,6 +118,10 @@ func TestAddressAndPreferencesEndpoints(t *testing.T) {
 	if w := doReq(t, r, http.MethodPut, prefPath, "admin", `{"preferred_contact_type":"fax"}`); w.Code != http.StatusUnprocessableEntity {
 		t.Errorf("invalid preferred_contact_type: expected 422, got %d", w.Code)
 	}
+	// get preferences for user without any -> 404
+	if w := doReq(t, r, http.MethodGet, "/api/users/"+other.String()+"/preferences", "admin", ""); w.Code != http.StatusNotFound {
+		t.Errorf("get missing preferences: expected 404, got %d", w.Code)
+	}
 
 	// no auth -> 401
 	if w := doReq(t, r, http.MethodPut, addrPath, "", `{"street1":"X","postal_code":"1","city":"Y","country_code":"DE"}`); w.Code != http.StatusUnauthorized {

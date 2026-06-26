@@ -122,4 +122,9 @@ func TestGroupMemberEndpoints(t *testing.T) {
 	if w := doReq(t, r, http.MethodPost, membersPath, "weak", `{"user_id":"`+memberID.String()+`"}`); w.Code != http.StatusForbidden {
 		t.Errorf("weak: expected 403, got %d", w.Code)
 	}
+
+	// remove member from nonexistent group -> 404
+	if w := doReq(t, r, http.MethodDelete, "/api/groups/"+uuid.NewString()+"/members/"+memberID.String(), "admin", ""); w.Code != http.StatusNotFound {
+		t.Errorf("remove from unknown group: expected 404, got %d", w.Code)
+	}
 }

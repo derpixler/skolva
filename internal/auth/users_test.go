@@ -126,4 +126,22 @@ func TestUserEndpoints(t *testing.T) {
 	if w := doReq(t, r, http.MethodGet, "/api/users", "", ""); w.Code != http.StatusUnauthorized {
 		t.Errorf("no-auth list: expected 401, got %d", w.Code)
 	}
+
+	// delete nonexistent user -> 404
+	if w := doReq(t, r, http.MethodDelete, "/api/users/"+uuid.NewString(), "admin", ""); w.Code != http.StatusNotFound {
+		t.Errorf("delete unknown user: expected 404, got %d", w.Code)
+	}
+	// update nonexistent user -> 404
+	if w := doReq(t, r, http.MethodPatch, "/api/users/"+uuid.NewString(), "admin", `{"first_name":"X","last_name":"Y"}`); w.Code != http.StatusNotFound {
+		t.Errorf("update unknown user: expected 404, got %d", w.Code)
+	}
+	// update invalid id -> 422
+	if w := doReq(t, r, http.MethodPatch, "/api/users/not-a-uuid", "admin", `{"first_name":"X","last_name":"Y"}`); w.Code != http.StatusUnprocessableEntity {
+		t.Errorf("update invalid id: expected 422, got %d", w.Code)
+	}
+
+	// pagination: limit query param (covers pagination ParseInt branches)
+	if w := doReq(t, r, http.MethodGet, "/api/users?limit=5&offset=0", "admin", ""); w.Code != http.StatusOK {
+		t.Errorf("list with limit: expected 200, got %d", w.Code)
+	}
 }

@@ -173,6 +173,10 @@ func TestContactEndpoints(t *testing.T) {
 	if w := doReq(t, r, http.MethodDelete, base+"/"+cid, "admin", ""); w.Code != http.StatusNoContent {
 		t.Errorf("delete: expected 204, got %d", w.Code)
 	}
+	// delete nonexistent contact -> 404
+	if w := doReq(t, r, http.MethodDelete, base+"/"+uuid.NewString(), "admin", ""); w.Code != http.StatusNotFound {
+		t.Errorf("delete unknown contact: expected 404, got %d", w.Code)
+	}
 	// no auth -> 401
 	if w := doReq(t, r, http.MethodPost, base, "", `{"contact_type":"email","value":"x"}`); w.Code != http.StatusUnauthorized {
 		t.Errorf("no auth: expected 401, got %d", w.Code)

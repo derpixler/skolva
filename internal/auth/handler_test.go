@@ -139,4 +139,9 @@ func TestRoleAssignmentEndpoints(t *testing.T) {
 	if w := doReq(t, r, http.MethodPost, base, "weak", `{"role_slug":"mitglied"}`); w.Code != http.StatusForbidden {
 		t.Errorf("weak token: expected 403, got %d", w.Code)
 	}
+
+	// delete role from nonexistent user -> 404
+	if w := doReq(t, r, http.MethodDelete, "/api/users/"+uuid.NewString()+"/roles/mitglied", "admin", ""); w.Code != http.StatusNotFound {
+		t.Errorf("delete role unknown user: expected 404, got %d", w.Code)
+	}
 }
