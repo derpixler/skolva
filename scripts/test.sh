@@ -141,7 +141,13 @@ if [[ -f "go.mod" ]]; then true
 elif [[ -f "../go.mod" ]]; then cd ..
 else echo -e "${RED}ERROR: Must run from project root (where go.mod is)${NC}"; exit 1; fi
 
-echo -e "${BOLD}Skolva Test Suite (TP1 + TP2)${NC}${CI_MODE:+ (CI mode)}"
+# --- logging ---
+mkdir -p logs
+LOG_FILE="logs/test-$(date +%Y%m%d-%H%M%S).log"
+exec > >(tee "$LOG_FILE") 2>&1
+
+if [[ "$CI_MODE" == "true" ]]; then CI_LABEL=" (CI mode)"; else CI_LABEL=""; fi
+echo -e "${BOLD}Skolva Test Suite (TP1 + TP2)${NC}${CI_LABEL}"
 echo "Project: $(pwd)"
 echo "Go:      $(go version)"
 
