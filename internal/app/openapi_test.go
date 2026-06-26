@@ -56,7 +56,9 @@ func TestOpenAPIRouteParity(t *testing.T) {
 	engine := app.NewRouter(&database.Pools{}, nil, nil, noopVerifier, nil, nil, nil)
 
 	exempt := map[string]bool{
-		"GET /openapi.yaml": true, // meta endpoint, not part of the API contract
+		"GET /openapi.yaml":  true,
+		"GET /docs":          true,
+		"GET /docs/redoc.js": true,
 	}
 
 	routes := map[string]bool{}

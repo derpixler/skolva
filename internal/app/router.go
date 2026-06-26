@@ -8,8 +8,8 @@ import (
 	"github.com/derpixler/skolva/internal/core/jobs"
 	"github.com/derpixler/skolva/internal/core/mail"
 	"github.com/derpixler/skolva/internal/core/middleware"
-	"github.com/derpixler/skolva/internal/crm"
 	"github.com/derpixler/skolva/internal/core/secrets"
+	"github.com/derpixler/skolva/internal/crm"
 	"github.com/derpixler/skolva/internal/groups"
 	"github.com/gin-gonic/gin"
 )
@@ -39,6 +39,12 @@ func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker
 
 		api.GET("/openapi.yaml", func(c *gin.Context) {
 			c.Data(200, "application/yaml", apispec.Spec)
+		})
+		api.GET("/docs", func(c *gin.Context) {
+			c.Data(200, "text/html; charset=utf-8", apispec.RedocHTML)
+		})
+		api.GET("/docs/redoc.js", func(c *gin.Context) {
+			c.Data(200, "application/javascript", apispec.RedocJS)
 		})
 	}
 
