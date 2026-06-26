@@ -144,7 +144,7 @@ paths:
           $ref: "#/components/responses/Error"
   /auth/2fa/disable:
     post:
-      summary: Disable 2FA for the current user
+      summary: Disable 2FA
       operationId: disable2FA
       requestBody:
         required: true
@@ -157,6 +157,43 @@ paths:
           description: 2FA disabled
         "401":
           $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/password/forgot:
+    post:
+      summary: Request a password reset link
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordForgotRequest"
+      responses:
+        "200":
+          description: Reset link sent (if email exists)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/password/reset:
+    post:
+      summary: Reset password with token
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+      responses:
+        "204":
+          description: Password updated
         "422":
           $ref: "#/components/responses/Error"
   /users:
@@ -827,6 +864,27 @@ components:
         temp_token:
           type: string
         code:
+          type: string
+    PasswordForgotRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+    PasswordResetRequest:
+      type: object
+      required:
+        - user_id
+        - token
+        - password
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        token:
+          type: string
+        password:
           type: string
     Group:
       type: object

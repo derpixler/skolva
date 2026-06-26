@@ -61,7 +61,7 @@ func TestNewRouterHealth(t *testing.T) {
 		t.Fatalf("failed to create worker: %v", err)
 	}
 
-	router := app.NewRouter(pools, hm, worker, noopVerifier, nil, nil)
+	router := app.NewRouter(pools, hm, worker, noopVerifier, nil, nil, nil)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/health", nil)
@@ -113,7 +113,7 @@ func TestNewRouterUnhealthy(t *testing.T) {
 		t.Fatalf("failed to create worker: %v", err)
 	}
 
-	router := app.NewRouter(pools, hm, worker, noopVerifier, nil, nil)
+	router := app.NewRouter(pools, hm, worker, noopVerifier, nil, nil, nil)
 
 	pools.Close()
 

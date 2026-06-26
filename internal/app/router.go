@@ -6,14 +6,15 @@ import (
 	"github.com/derpixler/skolva/internal/core/database"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
+	"github.com/derpixler/skolva/internal/core/mail"
 	"github.com/derpixler/skolva/internal/core/middleware"
-	"github.com/derpixler/skolva/internal/core/secrets"
 	"github.com/derpixler/skolva/internal/crm"
+	"github.com/derpixler/skolva/internal/core/secrets"
 	"github.com/derpixler/skolva/internal/groups"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker, verify middleware.Verifier, tm *auth.TokenManager, cipher *secrets.Cipher) *gin.Engine {
+func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker, verify middleware.Verifier, tm *auth.TokenManager, cipher *secrets.Cipher, mailer mail.Mailer) *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
@@ -32,7 +33,7 @@ func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker
 			c.JSON(200, gin.H{"status": "healthy"})
 		})
 
-		auth.RegisterRoutes(api, pools.Web, tm, cipher)
+		auth.RegisterRoutes(api, pools.Web, tm, cipher, mailer)
 		groups.RegisterRoutes(api, pools.Web)
 		crm.RegisterRoutes(api, pools.Web)
 

@@ -260,6 +260,20 @@ func (q *Queries) SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) 
 	return err
 }
 
+const updatePassword = `-- name: UpdatePassword :exec
+UPDATE users SET password_hash = $2 WHERE id = $1 AND deleted_at IS NULL
+`
+
+type UpdatePasswordParams struct {
+	ID           uuid.UUID `json:"id"`
+	PasswordHash string    `json:"password_hash"`
+}
+
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
+	_, err := q.db.Exec(ctx, updatePassword, arg.ID, arg.PasswordHash)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET first_name = $1,

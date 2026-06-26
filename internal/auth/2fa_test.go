@@ -48,7 +48,7 @@ func Test2FAFlow(t *testing.T) {
 	r.Use(middleware.Authenticate(verify))
 	r.Use(middleware.ActorMiddleware())
 	api := r.Group("/api")
-	auth.RegisterRoutes(api, pool, tm, cipher)
+	auth.RegisterRoutes(api, pool, tm, cipher, nil)
 
 	// 1) login without 2FA -> full access token
 	w := doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"2fa@example.com","password":"password123"}`)

@@ -43,7 +43,7 @@ func TestUserEndpoints(t *testing.T) {
 	r.Use(middleware.Authenticate(verify))
 	r.Use(middleware.ActorMiddleware())
 	api := r.Group("/api")
-	auth.RegisterRoutes(api, pool, nil, nil)
+	auth.RegisterRoutes(api, pool, nil, nil, nil)
 
 	// register -> 201
 	w := doReq(t, r, http.MethodPost, "/api/auth/register", "admin", `{"email":"searchme@example.com","password":"password123","first_name":"Search","last_name":"Mee"}`)

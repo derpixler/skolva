@@ -54,7 +54,7 @@ func TestE2ERegisterLogin2FA(t *testing.T) {
 	r.Use(middleware.Authenticate(verify))
 	r.Use(middleware.ActorMiddleware())
 	api := r.Group("/api")
-	auth.RegisterRoutes(api, pool, tm, cipher)
+	auth.RegisterRoutes(api, pool, tm, cipher, nil)
 
 	// helper: unmarshal login/token response
 	type credentials struct {

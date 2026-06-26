@@ -48,6 +48,7 @@ type Querier interface {
 	SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) error
 	UpdateContact(ctx context.Context, arg UpdateContactParams) (UpdateContactRow, error)
 	UpdateGroup(ctx context.Context, arg UpdateGroupParams) (UpdateGroupRow, error)
+	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error)
 	UpsertTOTPSecret(ctx context.Context, arg UpsertTOTPSecretParams) (UserTotpSecret, error)
 	UpsertUserAddress(ctx context.Context, arg UpsertUserAddressParams) (UpsertUserAddressRow, error)

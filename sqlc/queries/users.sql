@@ -51,3 +51,6 @@ SELECT EXISTS (
 SELECT id, email, first_name, last_name, is_active, is_protected, created_at, updated_at
 FROM users
 WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL;
+
+-- name: UpdatePassword :exec
+UPDATE users SET password_hash = $2 WHERE id = $1 AND deleted_at IS NULL;

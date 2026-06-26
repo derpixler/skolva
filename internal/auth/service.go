@@ -6,6 +6,7 @@ import (
 	"time"
 
 	apperrors "github.com/derpixler/skolva/internal/core/errors"
+	"github.com/derpixler/skolva/internal/core/mail"
 	"github.com/derpixler/skolva/internal/core/secrets"
 	"github.com/derpixler/skolva/internal/db"
 	"github.com/google/uuid"
@@ -17,10 +18,11 @@ type Service struct {
 	repo   *Repository
 	tm     *TokenManager
 	cipher *secrets.Cipher
+	mailer mail.Mailer
 }
 
-func NewService(repo *Repository, tm *TokenManager, cipher *secrets.Cipher) *Service {
-	return &Service{repo: repo, tm: tm, cipher: cipher}
+func NewService(repo *Repository, tm *TokenManager, cipher *secrets.Cipher, mailer mail.Mailer) *Service {
+	return &Service{repo: repo, tm: tm, cipher: cipher, mailer: mailer}
 }
 
 func (s *Service) ensureUser(ctx context.Context, userID uuid.UUID) error {

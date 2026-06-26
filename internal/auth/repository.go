@@ -182,3 +182,7 @@ func (r *Repository) UpsertTOTPSecret(ctx context.Context, params db.UpsertTOTPS
 func (r *Repository) DeleteTOTPSecret(ctx context.Context, userID uuid.UUID) error {
 	return r.q.DeleteTOTPSecret(ctx, userID)
 }
+
+func (r *Repository) UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error {
+	return r.q.UpdatePassword(ctx, db.UpdatePasswordParams{ID: userID, PasswordHash: passwordHash})
+}

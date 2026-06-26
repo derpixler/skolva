@@ -109,3 +109,13 @@ type verify2FARequest struct {
 type codeRequest struct {
 	Code string `json:"code" binding:"required"`
 }
+
+type passwordForgotRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type passwordResetRequest struct {
+	UserID   string `json:"user_id" binding:"required"`
+	Token    string `json:"token" binding:"required"`
+	Password string `json:"password" binding:"required,min=8"`
+}

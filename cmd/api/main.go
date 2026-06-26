@@ -15,6 +15,7 @@ import (
 	"github.com/derpixler/skolva/internal/core/database"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
+	"github.com/derpixler/skolva/internal/core/mail"
 	"github.com/derpixler/skolva/internal/core/secrets"
 )
 
@@ -77,7 +78,7 @@ func main() {
 		log.Printf("failed to create secrets cipher: %v", err)
 		return
 	}
-	router := app.NewRouter(pools, hookManager, worker, verify, tokenManager, cipher)
+	router := app.NewRouter(pools, hookManager, worker, verify, tokenManager, cipher, mail.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPFrom))
 
 	go func() {
 		addr := ":" + cfg.Port

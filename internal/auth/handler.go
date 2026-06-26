@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	apperrors "github.com/derpixler/skolva/internal/core/errors"
+	"github.com/derpixler/skolva/internal/core/mail"
 	"github.com/derpixler/skolva/internal/core/middleware"
 	"github.com/derpixler/skolva/internal/core/secrets"
 	"github.com/gin-gonic/gin"
@@ -23,8 +24,8 @@ func NewHandler(svc *Service) *Handler {
 
 // RegisterRoutes wires the identity endpoints onto the given /api group,
 // constructing the repository/service from the pool.
-func RegisterRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, tm *TokenManager, cipher *secrets.Cipher) {
-	h := NewHandler(NewService(NewRepository(pool), tm, cipher))
+func RegisterRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, tm *TokenManager, cipher *secrets.Cipher, mailer mail.Mailer) {
+	h := NewHandler(NewService(NewRepository(pool), tm, cipher, mailer))
 
 	rg.POST("/auth/login", h.Login)
 	rg.POST("/auth/register", middleware.RequirePermission("users.write"), h.Register)
@@ -34,6 +35,9 @@ func RegisterRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, tm *TokenManager, c
 	rg.POST("/auth/2fa/verify", h.Verify2FA)
 	rg.POST("/auth/2fa/recovery", h.Recover2FA)
 	rg.POST("/auth/2fa/disable", middleware.RequireAuth(), h.Disable2FA)
+
+	rg.POST("/auth/password/forgot", h.ForgotPassword)
+	rg.POST("/auth/password/reset", h.ResetPassword)
 
 	rg.GET("/users", middleware.RequirePermission("users.read"), h.ListUsers)
 	rg.GET("/users/:id", middleware.RequirePermission("users.read"), h.GetUser)
@@ -277,6 +281,37 @@ func (h *Handler) Disable2FA(c *gin.Context) {
 		return
 	}
 	if err := h.svc.Disable2FA(c.Request.Context(), actorID(c), req.Code); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) ForgotPassword(c *gin.Context) {
+	var req passwordForgotRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("email is required"))
+		return
+	}
+	if err := h.svc.ForgotPassword(c.Request.Context(), req.Email); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "If the email exists, a reset link has been sent."})
+}
+
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var req passwordResetRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("user_id, token and password (min 8) are required"))
+		return
+	}
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		respondError(c, apperrors.NewValidation("invalid user_id"))
+		return
+	}
+	if err := h.svc.ResetPassword(c.Request.Context(), userID, req.Token, req.Password); err != nil {
 		respondError(c, err)
 		return
 	}
