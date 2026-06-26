@@ -40,7 +40,7 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		Port:             getEnv("APP_PORT", "8080"),
+		Port:             getEnv("APP_PORT", "8088"),
 		Env:              getEnv("APP_ENV", "development"),
 		DatabaseURL:      requireEnv("DATABASE_URL"),
 		JWTSecret:        requireEnv("JWT_SECRET"),

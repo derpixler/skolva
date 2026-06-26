@@ -33,9 +33,9 @@ services:
   app:
     build: .
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8088}:8088"
     environment:
-      APP_PORT: "8080"
+      APP_PORT: "8088"
       APP_ENV: production
       DATABASE_URL: postgres://vv:vv@postgres:5432/vv?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:-dev-secret}
@@ -58,7 +58,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8088/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3

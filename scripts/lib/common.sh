@@ -169,7 +169,7 @@ s_docker_build() {
     local health=""
     echo "  Waiting for app to become healthy (max 30s)..."
     for i in $(seq 1 15); do
-        health=$(curl -s --max-time 3 http://localhost:8080/api/health 2>/dev/null || true)
+        health=$(curl -s --max-time 3 http://localhost:8088/api/health 2>/dev/null || true)
         if echo "$health" | grep -q '"healthy"'; then echo "  Response after ${i}s: ${health}"; break; fi; sleep 2
     done
     health=${health:-'{"status":"unreachable"}'}

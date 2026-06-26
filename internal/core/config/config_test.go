@@ -25,8 +25,8 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.EncryptionKey != "test-encryption-key" {
 		t.Errorf("unexpected encryption key: %s", cfg.EncryptionKey)
 	}
-	if cfg.Port != "8080" {
-		t.Errorf("expected port 8080, got %s", cfg.Port)
+	if cfg.Port != "8088" {
+		t.Errorf("expected port 8088, got %s", cfg.Port)
 	}
 	if cfg.Env != "development" {
 		t.Errorf("expected env development, got %s", cfg.Env)
