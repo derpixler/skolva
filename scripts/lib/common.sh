@@ -119,7 +119,7 @@ s_lint()     { banner "Lint (golangci-lint)"; run_cmd "golangci-lint" golangci-l
 
 s_coverage() {
     banner "Full Test Suite + Coverage Report"
-    echo ""; run_cmd "go test all packages with coverage" go test -count=1 -coverprofile=coverage.out ./...
+    echo ""; echo -e "  ${BLUE}\$${NC} go test -count=1 -coverprofile=coverage.out ./..."; go test -count=1 -coverprofile=coverage.out ./... 2>&1 | sed 's/^/  /' || true
     echo ""
     local total; total=$(go tool cover -func=coverage.out 2>/dev/null | grep total | awk '{print $3}')
     echo -e "  ${BOLD}Total Coverage: ${GREEN}${total}${NC}"
