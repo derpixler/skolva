@@ -110,6 +110,10 @@ type codeRequest struct {
 	Code string `json:"code" binding:"required"`
 }
 
+type tempTokenRequest struct {
+	TempToken string `json:"temp_token" binding:"required"`
+}
+
 type passwordForgotRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
