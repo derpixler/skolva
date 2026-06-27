@@ -45,9 +45,10 @@ func TestLoginEndpoint(t *testing.T) {
 	auth.RegisterRoutes(api, pool, tm, nil, nil)
 
 	// valid login -> 200 with a token whose claims carry roles + permissions
+	tstep(t, "valid login (email=u@example.com)")
 	w := doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"u@example.com","password":"s3cr3t-pw"}`)
-	if w.Code != http.StatusOK {
-		t.Fatalf("login: expected 200, got %d (%s)", w.Code, w.Body.String())
+	if !assertStatus(t, w, http.StatusOK, "login valid") {
+		t.FailNow()
 	}
 	var resp struct {
 		Token string `json:"token"`
@@ -58,6 +59,7 @@ func TestLoginEndpoint(t *testing.T) {
 	if resp.Token == "" {
 		t.Fatal("expected a non-empty token")
 	}
+	tlog(t, "[val ] access token issued (%d chars)", len(resp.Token))
 
 	claims, err := tm.Verify(resp.Token)
 	if err != nil {
@@ -78,17 +80,15 @@ func TestLoginEndpoint(t *testing.T) {
 	if len(claims.Permissions) == 0 {
 		t.Error("expected resolved permissions in token claims")
 	}
+	tlog(t, "[val ] claims subject=%s email=%s roles=%v perms=%d",
+		claims.Subject, claims.Email, claims.Roles, len(claims.Permissions))
 
-	// wrong password -> 401
-	if w := doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"u@example.com","password":"wrong"}`); w.Code != http.StatusUnauthorized {
-		t.Errorf("wrong password: expected 401, got %d", w.Code)
-	}
-	// unknown email -> 401 (no enumeration)
-	if w := doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"nope@example.com","password":"x"}`); w.Code != http.StatusUnauthorized {
-		t.Errorf("unknown email: expected 401, got %d", w.Code)
-	}
-	// missing password -> 422
-	if w := doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"u@example.com"}`); w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("missing password: expected 422, got %d", w.Code)
-	}
+	// negative cases (the [req] line shows the input body; password redacted)
+	tstep(t, "login negative cases")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"u@example.com","password":"wrong"}`),
+		http.StatusUnauthorized, "wrong password")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"nope@example.com","password":"x"}`),
+		http.StatusUnauthorized, "unknown email (no enumeration)")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"u@example.com"}`),
+		http.StatusUnprocessableEntity, "missing password")
 }
