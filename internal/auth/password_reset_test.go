@@ -37,41 +37,30 @@ func TestPasswordReset(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	api := r.Group("/api")
-	auth.RegisterRoutes(api, pool, tm, cipher, mail.NewNoopMailer())
+	mailer := mail.NewNoopMailer()
+	auth.RegisterRoutes(api, pool, tm, cipher, mailer)
 
-	// forgot -> 200 (no user enumeration)
-	w := doReq(t, r, http.MethodPost, "/api/auth/password/forgot", "", `{"email":"nonexistent@example.com"}`)
-	if w.Code != http.StatusOK {
-		t.Errorf("forgot unknown: expected 200, got %d", w.Code)
-	}
-	// forgot -> 200 (sends email)
-	w = doReq(t, r, http.MethodPost, "/api/auth/password/forgot", "", `{"email":"reset@example.com"}`)
-	if w.Code != http.StatusOK {
-		t.Errorf("forgot: expected 200, got %d", w.Code)
-	}
-
-	// reset with wrong token -> 422
-	w = doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"wrong-token","password":"newpass123"}`)
-	if w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("reset wrong token: expected 422, got %d", w.Code)
+	// forgot -> always 200 (no user enumeration), unknown + existing email
+	tstep(t, "forgot password (unknown + existing email, both 200)")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/forgot", "", `{"email":"nonexistent@example.com"}`),
+		http.StatusOK, "forgot unknown email")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/forgot", "", `{"email":"reset@example.com"}`),
+		http.StatusOK, "forgot existing email")
+	if sent := mailer.Sent(); len(sent) > 0 {
+		last := sent[len(sent)-1]
+		tlog(t, "[mail] to=%v subject=%q (reset link delivered)", last.To, last.Subject)
 	}
 
-	// reset with invalid user_id -> 422
-	w = doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"not-a-uuid","token":"x","password":"newpass123"}`)
-	if w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("reset invalid id: expected 422, got %d", w.Code)
-	}
-
-	// missing fields -> 422
-	w = doReq(t, r, http.MethodPost, "/api/auth/password/forgot", "", `{}`)
-	if w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("forgot missing: expected 422, got %d", w.Code)
-	}
-	// short password -> 422
-	w = doReq(t, r, http.MethodPost, "/api/auth/password/forgot", "", `{"email":"a@b.c"}`)
-	if w.Code != http.StatusOK {
-		t.Errorf("forgot valid: expected 200, got %d", w.Code)
-	}
+	// reset negative cases
+	tstep(t, "reset password negative cases")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"wrong-token","password":"newpass123"}`),
+		http.StatusUnprocessableEntity, "reset wrong token")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"not-a-uuid","token":"x","password":"newpass123"}`),
+		http.StatusUnprocessableEntity, "reset invalid user_id")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/forgot", "", `{}`),
+		http.StatusUnprocessableEntity, "forgot missing email")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/forgot", "", `{"email":"a@b.c"}`),
+		http.StatusOK, "forgot any email (no enumeration)")
 }
 
 func TestPasswordResetExpiryAndReplay(t *testing.T) {
@@ -106,32 +95,31 @@ func TestPasswordResetExpiryAndReplay(t *testing.T) {
 	tokenHash, _ := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
 	_ = meta.Set(ctx, pool, user.ID, "auth.reset.token_hash", string(tokenHash))
 	_ = meta.Set(ctx, pool, user.ID, "auth.reset.expires_at", time.Now().Add(time.Hour).UTC().Format(time.RFC3339))
+	tstep(t, "seeded a valid reset token (expiry +1h)")
+	tlog(t, "[val ] reset token=%s user=%s", token, user.ID)
 
 	// reset with wrong token -> 422
-	w := doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"wrong","password":"newpass123"}`)
-	if w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("reset wrong token: expected 422, got %d", w.Code)
-	}
+	tstep(t, "reset with wrong token")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"wrong","password":"newpass123"}`),
+		http.StatusUnprocessableEntity, "reset wrong token")
 
 	// reset with expired token -> 422
+	tstep(t, "expire the token, then reset")
 	_ = meta.Set(ctx, pool, user.ID, "auth.reset.expires_at", time.Now().Add(-time.Hour).UTC().Format(time.RFC3339))
-	w = doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"`+token+`","password":"newpass123"}`)
-	if w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("reset expired: expected 422, got %d", w.Code)
-	}
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"`+token+`","password":"newpass123"}`),
+		http.StatusUnprocessableEntity, "reset expired token")
 
 	// reset with already-used token -> 422
+	tstep(t, "mark token used, then reset")
 	_ = meta.Set(ctx, pool, user.ID, "auth.reset.expires_at", time.Now().Add(time.Hour).UTC().Format(time.RFC3339))
 	_ = meta.Set(ctx, pool, user.ID, "auth.reset.used", "true")
-	w = doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"`+token+`","password":"newpass123"}`)
-	if w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("reset used: expected 422, got %d", w.Code)
-	}
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"`+token+`","password":"newpass123"}`),
+		http.StatusUnprocessableEntity, "reset already-used token")
 
 	// reset succeeds with fresh token and future expiry
+	tstep(t, "clear used + future expiry, then reset succeeds")
 	_ = meta.Delete(ctx, pool, user.ID, "auth.reset.used")
 	_ = meta.Set(ctx, pool, user.ID, "auth.reset.expires_at", time.Now().Add(time.Hour).UTC().Format(time.RFC3339))
-	if w := doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"`+token+`","password":"newpass123"}`); w.Code != http.StatusNoContent {
-		t.Errorf("reset success: expected 204, got %d", w.Code)
-	}
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/password/reset", "", `{"user_id":"`+user.ID.String()+`","token":"`+token+`","password":"newpass123"}`),
+		http.StatusNoContent, "reset success (fresh token)")
 }

@@ -51,6 +51,7 @@ func Test2FAFlow(t *testing.T) {
 	auth.RegisterRoutes(api, pool, tm, cipher, nil)
 
 	// 1) login without 2FA -> full access token
+	tstep(t, "login without 2FA -> full token")
 	w := doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"2fa@example.com","password":"password123"}`)
 	if w.Code != http.StatusOK {
 		t.Fatalf("login: %d %s", w.Code, w.Body.String())
@@ -85,17 +86,16 @@ func Test2FAFlow(t *testing.T) {
 	if err != nil || totpSecret == "" {
 		t.Fatalf("generate TOTP code (secret=%q): err=%v", totpSecret, err)
 	}
+	tlog(t, "[val ] TOTP secret len=%d, recovery codes=%d, code=%s",
+		len(totpSecret), len(setupResp.RecoveryCodes), validCode)
 
-	// 3) confirm 2FA — wrong code first
-	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/confirm", bearer, `{"code":"000000"}`)
-	if w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("confirm wrong code: expected 422, got %d", w.Code)
-	}
-
-	// confirm with valid code
-	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/confirm", bearer, `{"code":"`+validCode+`"}`)
-	if w.Code != http.StatusNoContent {
-		t.Fatalf("confirm: %d %s", w.Code, w.Body.String())
+	// 3) confirm 2FA — wrong code first, then valid
+	tstep(t, "confirm 2FA (wrong then valid)")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/2fa/confirm", bearer, `{"code":"000000"}`),
+		http.StatusUnprocessableEntity, "confirm wrong code")
+	if !assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/2fa/confirm", bearer, `{"code":"`+validCode+`"}`),
+		http.StatusNoContent, "confirm valid code") {
+		t.FailNow()
 	}
 
 	// 4) login now returns requires_2fa
@@ -131,15 +131,11 @@ func Test2FAFlow(t *testing.T) {
 		TempToken   string `json:"temp_token"`
 	}{}
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
-	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/recovery", "", `{"temp_token":"`+resp.TempToken+`","code":"`+setupResp.RecoveryCodes[0]+`"}`)
-	if w.Code != http.StatusOK {
-		t.Fatalf("recovery: %d %s", w.Code, w.Body.String())
-	}
-	// using the same recovery code again fails
-	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/recovery", "", `{"temp_token":"`+resp.TempToken+`","code":"`+setupResp.RecoveryCodes[0]+`"}`)
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("recovery reuse: expected 401, got %d", w.Code)
-	}
+	tstep(t, "recovery code (use once, reuse fails)")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/2fa/recovery", "", `{"temp_token":"`+resp.TempToken+`","code":"`+setupResp.RecoveryCodes[0]+`"}`),
+		http.StatusOK, "recovery code")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/2fa/recovery", "", `{"temp_token":"`+resp.TempToken+`","code":"`+setupResp.RecoveryCodes[0]+`"}`),
+		http.StatusUnauthorized, "recovery code reuse")
 
 	// 7) disable 2FA (needs a fresh full token from verify)
 	w = doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"2fa@example.com","password":"password123"}`)
@@ -154,19 +150,16 @@ func Test2FAFlow(t *testing.T) {
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	fullToken := resp.Token
 
-	// disable with wrong code -> 401 (Verify2FA returns unauthorized)
-	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/disable", fullToken, `{"code":"000000"}`)
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("disable wrong code: expected 401, got %d", w.Code)
-	}
-
+	// disable with wrong then valid code
+	tstep(t, "disable 2FA (wrong then valid)")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/2fa/disable", fullToken, `{"code":"000000"}`),
+		http.StatusUnauthorized, "disable wrong code")
 	validCode3, _ := totp.GenerateCode(string(totpSecret), time.Now())
-	w = doReq(t, r, http.MethodPost, "/api/auth/2fa/disable", fullToken, `{"code":"`+validCode3+`"}`)
-	if w.Code != http.StatusNoContent {
-		t.Errorf("disable: expected 204, got %d (%s)", w.Code, w.Body.String())
-	}
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/2fa/disable", fullToken, `{"code":"`+validCode3+`"}`),
+		http.StatusNoContent, "disable valid code")
 
 	// login works without 2FA again
+	tstep(t, "login after disable -> direct token")
 	w = doReq(t, r, http.MethodPost, "/api/auth/login", "", `{"email":"2fa@example.com","password":"password123"}`)
 	resp = struct {
 		Token       string `json:"token"`

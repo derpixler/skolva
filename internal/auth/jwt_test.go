@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"errors"
-	"slices"
 	"testing"
 	"time"
 
@@ -10,12 +8,13 @@ import (
 )
 
 func TestNewTokenManagerEmptySecret(t *testing.T) {
-	if _, err := NewTokenManager("", time.Hour); !errors.Is(err, ErrEmptySecret) {
-		t.Errorf("expected ErrEmptySecret, got %v", err)
-	}
+	tstep(t, "NewTokenManager with empty secret -> ErrEmptySecret")
+	_, err := NewTokenManager("", time.Hour)
+	assertErrIs(t, err, ErrEmptySecret, "empty secret rejected")
 }
 
 func TestIssueAccessAndVerifyRoundTrip(t *testing.T) {
+	tstep(t, "issue access token + verify round-trip")
 	m, err := NewTokenManager("super-secret", time.Hour)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -23,33 +22,30 @@ func TestIssueAccessAndVerifyRoundTrip(t *testing.T) {
 
 	roles := []string{"admin", "mitglied"}
 	perms := []string{"users.read", "users.write"}
+	tlog(t, "[val ] input subject=user-1 email=a@example.com roles=%v perms=%v", roles, perms)
+
 	tok, err := m.IssueAccess("user-1", "a@example.com", roles, perms)
 	if err != nil {
 		t.Fatalf("issue failed: %v", err)
 	}
+	tlog(t, "[val ] issued access token (%d chars)", len(tok))
 
 	claims, err := m.Verify(tok)
 	if err != nil {
 		t.Fatalf("verify failed: %v", err)
 	}
-	if claims.Subject != "user-1" {
-		t.Errorf("unexpected subject: %s", claims.Subject)
-	}
-	if claims.Email != "a@example.com" {
-		t.Errorf("unexpected email: %s", claims.Email)
-	}
-	if claims.Kind != TokenKindAccess {
-		t.Errorf("expected kind %s, got %s", TokenKindAccess, claims.Kind)
-	}
-	if !slices.Equal(claims.Roles, roles) {
-		t.Errorf("unexpected roles: %v", claims.Roles)
-	}
-	if !slices.Equal(claims.Permissions, perms) {
-		t.Errorf("unexpected permissions: %v", claims.Permissions)
-	}
+	tlog(t, "[val ] claims subject=%s email=%s kind=%s roles=%v perms=%v",
+		claims.Subject, claims.Email, claims.Kind, claims.Roles, claims.Permissions)
+
+	assertEq(t, claims.Subject, "user-1", "claim subject")
+	assertEq(t, claims.Email, "a@example.com", "claim email")
+	assertEq(t, claims.Kind, TokenKindAccess, "claim kind")
+	assertSliceEq(t, claims.Roles, roles, "claim roles")
+	assertSliceEq(t, claims.Permissions, perms, "claim permissions")
 }
 
 func TestIssuePending2FA(t *testing.T) {
+	tstep(t, "issue pending-2FA token + verify")
 	m, err := NewTokenManager("super-secret", time.Hour)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -59,27 +55,27 @@ func TestIssuePending2FA(t *testing.T) {
 	if err != nil {
 		t.Fatalf("issue failed: %v", err)
 	}
+	tlog(t, "[val ] issued pending-2FA token (%d chars), ttl=5m", len(tok))
 
 	claims, err := m.Verify(tok)
 	if err != nil {
 		t.Fatalf("verify failed: %v", err)
 	}
-	if claims.Subject != "user-2" {
-		t.Errorf("unexpected subject: %s", claims.Subject)
-	}
-	if claims.Kind != TokenKindPending2FA {
-		t.Errorf("expected kind %s, got %s", TokenKindPending2FA, claims.Kind)
-	}
+	tlog(t, "[val ] claims subject=%s kind=%s", claims.Subject, claims.Kind)
+
+	assertEq(t, claims.Subject, "user-2", "claim subject")
+	assertEq(t, claims.Kind, TokenKindPending2FA, "claim kind")
 }
 
 func TestIssueEmptySubject(t *testing.T) {
+	tstep(t, "IssueAccess with empty subject -> ErrEmptySubject")
 	m, _ := NewTokenManager("super-secret", time.Hour)
-	if _, err := m.IssueAccess("", "a@example.com", nil, nil); !errors.Is(err, ErrEmptySubject) {
-		t.Errorf("expected ErrEmptySubject, got %v", err)
-	}
+	_, err := m.IssueAccess("", "a@example.com", nil, nil)
+	assertErrIs(t, err, ErrEmptySubject, "empty subject rejected")
 }
 
 func TestVerifyWrongSecret(t *testing.T) {
+	tstep(t, "verify token signed with a different secret -> ErrInvalidToken")
 	issuer, _ := NewTokenManager("secret-a", time.Hour)
 	verifier, _ := NewTokenManager("secret-b", time.Hour)
 
@@ -87,12 +83,12 @@ func TestVerifyWrongSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("issue failed: %v", err)
 	}
-	if _, err := verifier.Verify(tok); !errors.Is(err, ErrInvalidToken) {
-		t.Errorf("expected ErrInvalidToken, got %v", err)
-	}
+	_, err = verifier.Verify(tok)
+	assertErrIs(t, err, ErrInvalidToken, "wrong secret rejected")
 }
 
 func TestVerifyExpiredToken(t *testing.T) {
+	tstep(t, "verify an expired token -> ErrInvalidToken (clock advanced +2h)")
 	m, _ := NewTokenManager("super-secret", time.Hour)
 	base := time.Now()
 	m.now = func() time.Time { return base }
@@ -103,12 +99,12 @@ func TestVerifyExpiredToken(t *testing.T) {
 	}
 
 	m.now = func() time.Time { return base.Add(2 * time.Hour) }
-	if _, err := m.Verify(tok); !errors.Is(err, ErrInvalidToken) {
-		t.Errorf("expected ErrInvalidToken for expired token, got %v", err)
-	}
+	_, err = m.Verify(tok)
+	assertErrIs(t, err, ErrInvalidToken, "expired token rejected")
 }
 
 func TestVerifyRejectsNoneAlgorithm(t *testing.T) {
+	tstep(t, "verify a token with alg=none -> ErrInvalidToken (algorithm-confusion attack)")
 	m, _ := NewTokenManager("super-secret", time.Hour)
 
 	none := jwt.NewWithClaims(jwt.SigningMethodNone, Claims{
@@ -123,14 +119,13 @@ func TestVerifyRejectsNoneAlgorithm(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to sign none token: %v", err)
 	}
-	if _, err := m.Verify(s); !errors.Is(err, ErrInvalidToken) {
-		t.Errorf("expected ErrInvalidToken for none algorithm, got %v", err)
-	}
+	_, err = m.Verify(s)
+	assertErrIs(t, err, ErrInvalidToken, "alg=none rejected")
 }
 
 func TestVerifyGarbageToken(t *testing.T) {
+	tstep(t, "verify a malformed token -> ErrInvalidToken")
 	m, _ := NewTokenManager("super-secret", time.Hour)
-	if _, err := m.Verify("not.a.jwt"); !errors.Is(err, ErrInvalidToken) {
-		t.Errorf("expected ErrInvalidToken for garbage token, got %v", err)
-	}
+	_, err := m.Verify("not.a.jwt")
+	assertErrIs(t, err, ErrInvalidToken, "garbage token rejected")
 }

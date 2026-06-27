@@ -46,9 +46,10 @@ func TestUserEndpoints(t *testing.T) {
 	auth.RegisterRoutes(api, pool, nil, nil, nil)
 
 	// register -> 201
+	tstep(t, "register user searchme@example.com as admin")
 	w := doReq(t, r, http.MethodPost, "/api/auth/register", "admin", `{"email":"searchme@example.com","password":"password123","first_name":"Search","last_name":"Mee"}`)
-	if w.Code != http.StatusCreated {
-		t.Fatalf("register: expected 201, got %d (%s)", w.Code, w.Body.String())
+	if !assertStatus(t, w, http.StatusCreated, "register") {
+		t.FailNow()
 	}
 	var u auth.UserResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &u); err != nil {
@@ -58,38 +59,37 @@ func TestUserEndpoints(t *testing.T) {
 		t.Fatalf("unexpected user: %+v", u)
 	}
 	nid := u.ID.String()
+	tlog(t, "[val ] created user id=%s email=%s", nid, u.Email)
 
-	// duplicate email -> 409
-	if w := doReq(t, r, http.MethodPost, "/api/auth/register", "admin", `{"email":"searchme@example.com","password":"password123","first_name":"X","last_name":"Y"}`); w.Code != http.StatusConflict {
-		t.Errorf("duplicate email: expected 409, got %d", w.Code)
-	}
-	// short password -> 422
-	if w := doReq(t, r, http.MethodPost, "/api/auth/register", "admin", `{"email":"a@b.co","password":"short","first_name":"X","last_name":"Y"}`); w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("short password: expected 422, got %d", w.Code)
-	}
+	tstep(t, "register negative cases")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/register", "admin", `{"email":"searchme@example.com","password":"password123","first_name":"X","last_name":"Y"}`),
+		http.StatusConflict, "duplicate email")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/register", "admin", `{"email":"a@b.co","password":"short","first_name":"X","last_name":"Y"}`),
+		http.StatusUnprocessableEntity, "short password")
 
 	// list -> 200 with at least admin + new user
+	tstep(t, "list users")
 	w = doReq(t, r, http.MethodGet, "/api/users", "admin", "")
 	var list []auth.UserResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil {
 		t.Fatalf("unmarshal list: %v", err)
 	}
-	if w.Code != http.StatusOK || len(list) < 2 {
-		t.Errorf("list: code=%d len=%d", w.Code, len(list))
+	assertStatus(t, w, http.StatusOK, "list users")
+	if len(list) < 2 {
+		t.Errorf("expected >=2 users, got %d", len(list))
 	}
+	tlog(t, "[val ] list returned %d users", len(list))
 
 	// get -> 200; unknown -> 404
-	if w := doReq(t, r, http.MethodGet, "/api/users/"+nid, "admin", ""); w.Code != http.StatusOK {
-		t.Errorf("get: expected 200, got %d", w.Code)
-	}
-	if w := doReq(t, r, http.MethodGet, "/api/users/"+uuid.NewString(), "admin", ""); w.Code != http.StatusNotFound {
-		t.Errorf("get unknown: expected 404, got %d", w.Code)
-	}
+	tstep(t, "get user (existing + unknown)")
+	assertStatus(t, doReq(t, r, http.MethodGet, "/api/users/"+nid, "admin", ""), http.StatusOK, "get user")
+	assertStatus(t, doReq(t, r, http.MethodGet, "/api/users/"+uuid.NewString(), "admin", ""), http.StatusNotFound, "get unknown user")
 
 	// search finds the user (core/search #24)
+	tstep(t, "search users q=Mee")
 	w = doReq(t, r, http.MethodGet, "/api/search/users?q=Mee", "admin", "")
-	if w.Code != http.StatusOK {
-		t.Fatalf("search: expected 200, got %d", w.Code)
+	if !assertStatus(t, w, http.StatusOK, "search users") {
+		t.FailNow()
 	}
 	var found []auth.UserResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &found); err != nil {
@@ -104,44 +104,30 @@ func TestUserEndpoints(t *testing.T) {
 	if !hit {
 		t.Errorf("expected search to find the user, got %+v", found)
 	}
+	tlog(t, "[val ] search hits=%d, found target=%v", len(found), hit)
 
 	// update -> 200
-	if w := doReq(t, r, http.MethodPatch, "/api/users/"+nid, "admin", `{"first_name":"Renamed","last_name":"Mee"}`); w.Code != http.StatusOK {
-		t.Errorf("update: expected 200, got %d (%s)", w.Code, w.Body.String())
-	}
+	tstep(t, "update user (rename)")
+	assertStatus(t, doReq(t, r, http.MethodPatch, "/api/users/"+nid, "admin", `{"first_name":"Renamed","last_name":"Mee"}`),
+		http.StatusOK, "update user")
 
 	// delete -> 204; then get -> 404
-	if w := doReq(t, r, http.MethodDelete, "/api/users/"+nid, "admin", ""); w.Code != http.StatusNoContent {
-		t.Errorf("delete: expected 204, got %d", w.Code)
-	}
-	if w := doReq(t, r, http.MethodGet, "/api/users/"+nid, "admin", ""); w.Code != http.StatusNotFound {
-		t.Errorf("get after delete: expected 404, got %d", w.Code)
-	}
+	tstep(t, "soft-delete user, then re-get")
+	assertStatus(t, doReq(t, r, http.MethodDelete, "/api/users/"+nid, "admin", ""), http.StatusNoContent, "delete user")
+	assertStatus(t, doReq(t, r, http.MethodGet, "/api/users/"+nid, "admin", ""), http.StatusNotFound, "get after delete")
 
-	// register without permission -> 403
-	if w := doReq(t, r, http.MethodPost, "/api/auth/register", "weak", `{"email":"z@z.zz","password":"password123","first_name":"Z","last_name":"Z"}`); w.Code != http.StatusForbidden {
-		t.Errorf("weak register: expected 403, got %d", w.Code)
-	}
-	// list without auth -> 401
-	if w := doReq(t, r, http.MethodGet, "/api/users", "", ""); w.Code != http.StatusUnauthorized {
-		t.Errorf("no-auth list: expected 401, got %d", w.Code)
-	}
-
-	// delete nonexistent user -> 404
-	if w := doReq(t, r, http.MethodDelete, "/api/users/"+uuid.NewString(), "admin", ""); w.Code != http.StatusNotFound {
-		t.Errorf("delete unknown user: expected 404, got %d", w.Code)
-	}
-	// update nonexistent user -> 404
-	if w := doReq(t, r, http.MethodPatch, "/api/users/"+uuid.NewString(), "admin", `{"first_name":"X","last_name":"Y"}`); w.Code != http.StatusNotFound {
-		t.Errorf("update unknown user: expected 404, got %d", w.Code)
-	}
-	// update invalid id -> 422
-	if w := doReq(t, r, http.MethodPatch, "/api/users/not-a-uuid", "admin", `{"first_name":"X","last_name":"Y"}`); w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("update invalid id: expected 422, got %d", w.Code)
-	}
-
-	// pagination: limit query param (covers pagination ParseInt branches)
-	if w := doReq(t, r, http.MethodGet, "/api/users?limit=5&offset=0", "admin", ""); w.Code != http.StatusOK {
-		t.Errorf("list with limit: expected 200, got %d", w.Code)
-	}
+	// permission / validation edge cases (token in [req] line shows the role)
+	tstep(t, "users edge cases (weak / no token / unknown / invalid)")
+	assertStatus(t, doReq(t, r, http.MethodPost, "/api/auth/register", "weak", `{"email":"z@z.zz","password":"password123","first_name":"Z","last_name":"Z"}`),
+		http.StatusForbidden, "weak token register")
+	assertStatus(t, doReq(t, r, http.MethodGet, "/api/users", "", ""),
+		http.StatusUnauthorized, "no-auth list")
+	assertStatus(t, doReq(t, r, http.MethodDelete, "/api/users/"+uuid.NewString(), "admin", ""),
+		http.StatusNotFound, "delete unknown user")
+	assertStatus(t, doReq(t, r, http.MethodPatch, "/api/users/"+uuid.NewString(), "admin", `{"first_name":"X","last_name":"Y"}`),
+		http.StatusNotFound, "update unknown user")
+	assertStatus(t, doReq(t, r, http.MethodPatch, "/api/users/not-a-uuid", "admin", `{"first_name":"X","last_name":"Y"}`),
+		http.StatusUnprocessableEntity, "update invalid id")
+	assertStatus(t, doReq(t, r, http.MethodGet, "/api/users?limit=5&offset=0", "admin", ""),
+		http.StatusOK, "list with limit")
 }
