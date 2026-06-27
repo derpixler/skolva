@@ -36,6 +36,12 @@ func RegisterRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, tm *TokenManager, c
 	rg.POST("/auth/2fa/recovery", h.Recover2FA)
 	rg.POST("/auth/2fa/disable", middleware.RequireAuth(), h.Disable2FA)
 
+	rg.POST("/auth/2fa/email/setup", middleware.RequireAuth(), h.SetupEmail2FA)
+	rg.POST("/auth/2fa/email/confirm", middleware.RequireAuth(), h.ConfirmEmail2FA)
+	rg.POST("/auth/2fa/email/verify", h.VerifyEmail2FA)
+	rg.POST("/auth/2fa/email/resend", h.ResendEmail2FA)
+	rg.POST("/auth/2fa/email/disable", middleware.RequireAuth(), h.DisableEmail2FA)
+
 	rg.POST("/auth/password/forgot", h.ForgotPassword)
 	rg.POST("/auth/password/reset", h.ResetPassword)
 
@@ -285,6 +291,90 @@ func (h *Handler) Disable2FA(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) SetupEmail2FA(c *gin.Context) {
+	if err := h.svc.SetupEmail2FA(c.Request.Context(), actorID(c)); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) ConfirmEmail2FA(c *gin.Context) {
+	var req codeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("code is required"))
+		return
+	}
+	if err := h.svc.ConfirmEmail2FA(c.Request.Context(), actorID(c), req.Code); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) VerifyEmail2FA(c *gin.Context) {
+	var req verify2FARequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("temp_token and code are required"))
+		return
+	}
+	userID, ok := h.pending2FAUser(c, req.TempToken)
+	if !ok {
+		return
+	}
+	if err := h.svc.VerifyEmail2FALogin(c.Request.Context(), userID, req.Code); err != nil {
+		respondError(c, err)
+		return
+	}
+	token, err := h.svc.IssueAccessForUser(c.Request.Context(), userID)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, loginResponse{Token: token})
+}
+
+func (h *Handler) ResendEmail2FA(c *gin.Context) {
+	var req tempTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, apperrors.NewValidation("temp_token is required"))
+		return
+	}
+	userID, ok := h.pending2FAUser(c, req.TempToken)
+	if !ok {
+		return
+	}
+	if err := h.svc.SendEmail2FALoginOTP(c.Request.Context(), userID); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) DisableEmail2FA(c *gin.Context) {
+	if err := h.svc.DisableEmail2FA(c.Request.Context(), actorID(c)); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// pending2FAUser validates a 2FA pending token and returns the user it
+// identifies. On failure it writes the error response and returns ok=false.
+func (h *Handler) pending2FAUser(c *gin.Context, tempToken string) (uuid.UUID, bool) {
+	claims, err := h.svc.tm.Verify(tempToken)
+	if err != nil || claims.Kind != TokenKindPending2FA {
+		respondError(c, apperrors.NewUnauthorized("invalid or expired 2FA token"))
+		return uuid.Nil, false
+	}
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		respondError(c, apperrors.NewUnauthorized("invalid 2FA token"))
+		return uuid.Nil, false
+	}
+	return userID, true
 }
 
 func (h *Handler) ForgotPassword(c *gin.Context) {

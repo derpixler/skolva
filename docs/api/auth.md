@@ -12,8 +12,10 @@ checks (47 granular permissions across 5 seeded roles; admin = wildcard).
 ### POST /auth/login
 Public. Authenticate with email + password.
 - If 2FA is **not** active: returns a full access token (`token`).
-- If 2FA **is** active: returns `requires_2fa: true` + a `temp_token`
-  (exchange at `/auth/2fa/verify`).
+- If 2FA **is** active (TOTP or email): returns `requires_2fa: true` + a
+  `temp_token`. Exchange a TOTP code at `/auth/2fa/verify`. If **email-2FA**
+  is active, a one-time code is also emailed automatically; exchange it at
+  `/auth/2fa/email/verify`.
 
 ```
 POST /api/auth/login
@@ -119,6 +121,52 @@ POST /api/auth/2fa/recovery  {"temp_token":"eyJ...","code":"ABCD1234EFGH5678"}
 
 ### POST /auth/2fa/disable
 Requires authentication. Validates a TOTP code and removes 2FA. 204.
+
+## Email-2FA Endpoints
+
+A standalone second factor that delivers a 6-digit code by email, parallel to
+TOTP. Login requires 2FA if **either** factor is enabled. Codes are
+bcrypt-hashed at rest, single-use, expire after 10 minutes, and after 5
+consecutive failures the account is locked for 15 minutes.
+
+### POST /auth/2fa/email/setup
+Requires authentication. Emails a confirmation code to start activation.
+204. Returns 409 if email-2FA is already active.
+
+```
+POST /api/auth/2fa/email/setup  Authorization: Bearer <token>
+→ 204   (a 6-digit code is emailed)
+```
+
+### POST /auth/2fa/email/confirm
+Requires authentication. Verifies the emailed code and activates email-2FA.
+
+```
+POST /api/auth/2fa/email/confirm  {"code":"123456"}
+→ 204
+```
+
+### POST /auth/2fa/email/verify
+Public. Exchanges a 2FA pending token + the emailed login code for a full
+access token. After 5 consecutive failures the account is locked for 15
+minutes (403).
+
+```
+POST /api/auth/2fa/email/verify  {"temp_token":"eyJ...","code":"123456"}
+→ 200 {"token":"eyJ..."}
+```
+
+### POST /auth/2fa/email/resend
+Public. Re-emails a fresh login code for the pending session. 204.
+
+```
+POST /api/auth/2fa/email/resend  {"temp_token":"eyJ..."}
+→ 204
+```
+
+### POST /auth/2fa/email/disable
+Requires authentication. Deactivates email-2FA and clears all related state.
+204.
 
 ## Roles & Permissions
 

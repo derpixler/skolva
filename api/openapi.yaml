@@ -159,6 +159,85 @@ paths:
           $ref: "#/components/responses/Error"
         "422":
           $ref: "#/components/responses/Error"
+  /auth/2fa/email/setup:
+    post:
+      summary: Start email-2FA setup (emails a confirmation code)
+      operationId: setupEmail2FA
+      responses:
+        "204":
+          description: Confirmation code emailed
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/email/confirm:
+    post:
+      summary: Confirm the emailed code to activate email-2FA
+      operationId: confirmEmail2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeRequest"
+      responses:
+        "204":
+          description: Email-2FA activated
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/email/verify:
+    post:
+      summary: Verify the emailed login code to complete login
+      operationId: verifyEmail2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Verify2FARequest"
+      responses:
+        "200":
+          description: Access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/email/resend:
+    post:
+      summary: Resend an email-2FA login code
+      operationId: resendEmail2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TempTokenRequest"
+      responses:
+        "204":
+          description: Login code emailed
+        "401":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/email/disable:
+    post:
+      summary: Disable email-2FA
+      operationId: disableEmail2FA
+      responses:
+        "204":
+          description: Email-2FA disabled
+        "401":
+          $ref: "#/components/responses/Error"
   /auth/password/forgot:
     post:
       summary: Request a password reset link
@@ -864,6 +943,13 @@ components:
         temp_token:
           type: string
         code:
+          type: string
+    TempTokenRequest:
+      type: object
+      required:
+        - temp_token
+      properties:
+        temp_token:
           type: string
     PasswordForgotRequest:
       type: object

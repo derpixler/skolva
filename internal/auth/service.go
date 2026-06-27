@@ -103,12 +103,16 @@ func (s *Service) Login(ctx context.Context, email, password string) (token stri
 		return "", false, "", apperrors.NewUnauthorized("invalid credentials")
 	}
 
-	// 2FA active -> return a pending token instead of a full access token
+	// 2FA active (TOTP or email) -> return a pending token instead of access
 	totpRow, _ := s.repo.GetTOTPSecret(ctx, u.ID)
-	if totpRow.IsEnabled {
+	emailEnabled, _ := s.isEmail2FAEnabled(ctx, u.ID)
+	if totpRow.IsEnabled || emailEnabled {
 		temp, tmpErr := s.tm.IssuePending2FA(u.ID.String(), 5*time.Minute)
 		if tmpErr != nil {
 			return "", false, "", tmpErr
+		}
+		if emailEnabled {
+			_ = s.SendEmail2FALoginOTP(ctx, u.ID)
 		}
 		return "", true, temp, nil
 	}
