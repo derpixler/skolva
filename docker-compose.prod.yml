@@ -39,6 +39,7 @@ services:
       APP_ENV: production
       DATABASE_URL: postgres://vv:vv@postgres:5432/vv?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-dev-encryption-key}
       STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
       STORAGE_LOCAL_PATH: /app/data
       S3_ENDPOINT: ${S3_ENDPOINT:-minio:9000}
