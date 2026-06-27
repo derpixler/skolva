@@ -92,7 +92,7 @@ ALL_STEPS=(
     "04b:TP2 Unit Tests (§§ 1.1 – 1.12)"
     "05:All Integration Tests (TP1 + TP2, needs Docker)"
     "05a:TP1 Integration Tests"
-    "05b:TP2 Integration Tests (§§ 2.1 – 2.20, needs Docker)"
+    "05b:TP2 Integration Tests (§§ 2.1 – 2.21, needs Docker)"
     "06:Full Test Suite + Coverage"
     "07:Docker Compose (up → check → down)"
     "08:Docker Image Build + Health"

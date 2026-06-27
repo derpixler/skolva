@@ -114,4 +114,7 @@ tp2_integration() {
 
     step "2.20" "Group Members — endpoints (add/remove/list/user-groups)"
     run_go_test "members handler" ./internal/groups/ -v -count=1 -run "TestGroupMemberEndpoints"
+
+    step "2.21" "Auth HTTP — Email-2FA (setup/confirm/verify/resend/disable + lockout) (#134)"
+    run_go_test "Email-2FA" ./internal/auth/ -v -count=1 -run "TestEmail2FAFlow|TestEmail2FALockout"
 }
