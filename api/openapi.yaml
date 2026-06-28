@@ -1,0 +1,1226 @@
+openapi: 3.1.0
+info:
+  title: Skolva API
+  version: 0.2.0
+  description: >
+    Skolva — self-hosted community management platform.
+    Phase 2: Identity (auth, users, roles, permissions).
+servers:
+  - url: /api
+    description: API root
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: health
+      responses:
+        "200":
+          description: Service healthy
+        "503":
+          description: Service unhealthy
+  /auth/login:
+    post:
+      summary: Authenticate with email and password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/register:
+    post:
+      summary: Create a user account
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/setup:
+    post:
+      summary: Start 2FA setup (returns provisioning URI + recovery codes)
+      operationId: setup2FA
+      responses:
+        "200":
+          description: Provisioning URI and recovery codes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setup2FAResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/confirm:
+    post:
+      summary: Confirm TOTP code to activate 2FA
+      operationId: confirm2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeRequest"
+      responses:
+        "204":
+          description: 2FA activated
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/verify:
+    post:
+      summary: Verify 2FA code to complete login
+      operationId: verify2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Verify2FARequest"
+      responses:
+        "200":
+          description: Access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/recovery:
+    post:
+      summary: Use a recovery code to complete login
+      operationId: recover2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Verify2FARequest"
+      responses:
+        "200":
+          description: Access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/disable:
+    post:
+      summary: Disable 2FA
+      operationId: disable2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeRequest"
+      responses:
+        "204":
+          description: 2FA disabled
+        "401":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/email/setup:
+    post:
+      summary: Start email-2FA setup (emails a confirmation code)
+      operationId: setupEmail2FA
+      responses:
+        "204":
+          description: Confirmation code emailed
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/email/confirm:
+    post:
+      summary: Confirm the emailed code to activate email-2FA
+      operationId: confirmEmail2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodeRequest"
+      responses:
+        "204":
+          description: Email-2FA activated
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/email/verify:
+    post:
+      summary: Verify the emailed login code to complete login
+      operationId: verifyEmail2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Verify2FARequest"
+      responses:
+        "200":
+          description: Access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/email/resend:
+    post:
+      summary: Resend an email-2FA login code
+      operationId: resendEmail2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TempTokenRequest"
+      responses:
+        "204":
+          description: Login code emailed
+        "401":
+          $ref: "#/components/responses/Error"
+  /auth/2fa/email/disable:
+    post:
+      summary: Disable email-2FA
+      operationId: disableEmail2FA
+      responses:
+        "204":
+          description: Email-2FA disabled
+        "401":
+          $ref: "#/components/responses/Error"
+  /auth/password/forgot:
+    post:
+      summary: Request a password reset link
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordForgotRequest"
+      responses:
+        "200":
+          description: Reset link sent (if email exists)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "422":
+          $ref: "#/components/responses/Error"
+  /auth/password/reset:
+    post:
+      summary: Reset password with token
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+      responses:
+        "204":
+          description: Password updated
+        "422":
+          $ref: "#/components/responses/Error"
+  /users:
+    get:
+      summary: List users
+      operationId: listUsers
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+  /users/{id}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: Get a user
+      operationId: getUser
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    patch:
+      summary: Update a user
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: Delete a user
+      operationId: deleteUser
+      responses:
+        "204":
+          description: User deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /search/users:
+    get:
+      summary: Search users (full-text)
+      operationId: searchUsers
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+  /users/{id}/roles:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: List a user's roles
+      operationId: listUserRoles
+      responses:
+        "200":
+          description: The user's roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Assign a role to a user
+      operationId: assignRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignRoleRequest"
+      responses:
+        "200":
+          description: The user's updated roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}/roles/{slug}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Remove a role from a user
+      operationId: removeRole
+      responses:
+        "204":
+          description: Role removed
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /groups:
+    get:
+      summary: List groups
+      operationId: listGroups
+      parameters:
+        - name: group_type
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Create a group
+      operationId: createGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequest"
+      responses:
+        "201":
+          description: Created group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /groups/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get a group
+      operationId: getGroup
+      responses:
+        "200":
+          description: Group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    patch:
+      summary: Update a group
+      operationId: updateGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGroupRequest"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: Delete a group
+      operationId: deleteGroup
+      responses:
+        "204":
+          description: Group deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /groups/{id}/members:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: List group members
+      operationId: listGroupMembers
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Add or re-role a group member
+      operationId: addGroupMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMemberRequest"
+      responses:
+        "200":
+          description: Updated members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /groups/{id}/members/{user_id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      summary: Remove a group member
+      operationId: removeGroupMember
+      responses:
+        "204":
+          description: Member removed
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /users/{id}/groups:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: List a user's groups
+      operationId: listUserGroups
+      responses:
+        "200":
+          description: The user's groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserGroup"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+  /users/{id}/address:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: Get a user's address
+      operationId: getUserAddress
+      responses:
+        "200":
+          description: Address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      summary: Create or replace a user's address
+      operationId: putUserAddress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressRequest"
+      responses:
+        "200":
+          description: Updated address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}/preferences:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: Get a user's preferences
+      operationId: getUserPreferences
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preferences"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      summary: Create or replace a user's preferences
+      operationId: putUserPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferencesRequest"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preferences"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}/contacts:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      summary: List a user's contact points
+      operationId: listContacts
+      responses:
+        "200":
+          description: Contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contact"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+    post:
+      summary: Create a contact point
+      operationId: createContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContactRequest"
+      responses:
+        "201":
+          description: Created contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+  /users/{id}/contacts/{cid}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      summary: Update a contact point
+      operationId: updateContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContactRequest"
+      responses:
+        "200":
+          description: Updated contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: Delete a contact point
+      operationId: deleteContact
+      responses:
+        "204":
+          description: Contact deleted
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    Role:
+      type: object
+      properties:
+        slug:
+          type: string
+        display_name:
+          type: string
+        is_protected:
+          type: boolean
+    AssignRoleRequest:
+      type: object
+      required:
+        - role_slug
+      properties:
+        role_slug:
+          type: string
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        is_active:
+          type: boolean
+        is_protected:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - first_name
+        - last_name
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+    UpdateUserRequest:
+      type: object
+      required:
+        - first_name
+        - last_name
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        is_active:
+          type: boolean
+    Setup2FAResponse:
+      type: object
+      properties:
+        provisioning_uri:
+          type: string
+        recovery_codes:
+          type: array
+          items:
+            type: string
+    CodeRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+    Verify2FARequest:
+      type: object
+      required:
+        - temp_token
+        - code
+      properties:
+        temp_token:
+          type: string
+        code:
+          type: string
+    TempTokenRequest:
+      type: object
+      required:
+        - temp_token
+      properties:
+        temp_token:
+          type: string
+    PasswordForgotRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+    PasswordResetRequest:
+      type: object
+      required:
+        - user_id
+        - token
+        - password
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        token:
+          type: string
+        password:
+          type: string
+    Group:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        group_type:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateGroupRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        group_type:
+          type: string
+    UpdateGroupRequest:
+      type: object
+      required:
+        - name
+        - group_type
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        group_type:
+          type: string
+        is_active:
+          type: boolean
+    Member:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+        role_in_group:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+    AddMemberRequest:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        role_in_group:
+          type: string
+    UserGroup:
+      type: object
+      properties:
+        group_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        group_type:
+          type: string
+        role_in_group:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+    Address:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        company:
+          type: string
+        care_of:
+          type: string
+        street1:
+          type: string
+        street2:
+          type: string
+        postal_code:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country_code:
+          type: string
+        note:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AddressRequest:
+      type: object
+      required:
+        - street1
+        - postal_code
+        - city
+        - country_code
+      properties:
+        company:
+          type: string
+        care_of:
+          type: string
+        street1:
+          type: string
+        street2:
+          type: string
+        postal_code:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country_code:
+          type: string
+        note:
+          type: string
+    Preferences:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        preferred_contact_type:
+          type: string
+        note:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+    PreferencesRequest:
+      type: object
+      properties:
+        preferred_contact_type:
+          type: string
+        note:
+          type: string
+    Contact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        contact_type:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
+        is_primary:
+          type: boolean
+        is_preferred:
+          type: boolean
+        allow_contact:
+          type: boolean
+        preferred_time_window:
+          type: string
+        verified_at:
+          type: string
+          format: date-time
+        note:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateContactRequest:
+      type: object
+      required:
+        - contact_type
+        - value
+      properties:
+        contact_type:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
+        is_primary:
+          type: boolean
+        is_preferred:
+          type: boolean
+        allow_contact:
+          type: boolean
+        preferred_time_window:
+          type: string
+        note:
+          type: string
+    UpdateContactRequest:
+      type: object
+      required:
+        - value
+      properties:
+        label:
+          type: string
+        value:
+          type: string
+        is_primary:
+          type: boolean
+        is_preferred:
+          type: boolean
+        allow_contact:
+          type: boolean
+        preferred_time_window:
+          type: string
+        note:
+          type: string
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

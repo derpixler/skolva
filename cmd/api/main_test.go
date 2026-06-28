@@ -15,7 +15,7 @@ func TestHealthEndpoint(t *testing.T) {
 	router.Use(gin.Recovery())
 	router.Use(middleware.RequestID())
 	router.Use(middleware.CORS())
-	router.Use(middleware.AuthSkeleton())
+	router.Use(middleware.Authenticate(func(string) (*middleware.Actor, error) { return nil, nil }))
 	router.Use(middleware.ActorMiddleware())
 
 	router.GET("/api/health", func(c *gin.Context) {
