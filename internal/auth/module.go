@@ -24,7 +24,7 @@ func (m *identityModule) Version() string { return "0.1.0" }
 // here in the per-module migration phase (1d). The identity provider seam
 // (re-scoped #135) lands as a later checkpoint.
 func (m *identityModule) Permissions() []module.Permission { return nil }
-func (m *identityModule) Migrations() []module.Migration   { return nil }
+func (m *identityModule) Migrations() []module.Migration   { return identityMigrations }
 
 func (m *identityModule) RegisterHooks(*hooks.HookManager) error { return nil }
 
