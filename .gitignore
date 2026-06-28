@@ -36,3 +36,7 @@ logs/
 
 # Generated
 sqlc/*.go
+
+# Local multi-repo workspace (skolva-core extraction; machine-specific path)
+go.work
+go.work.sum

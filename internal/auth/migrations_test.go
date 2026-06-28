@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/derpixler/skolva-core/module"
 	"github.com/derpixler/skolva/internal/auth"
-	"github.com/derpixler/skolva/internal/core/module"
 	"github.com/derpixler/skolva/internal/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"

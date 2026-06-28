@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	apperrors "github.com/derpixler/skolva/internal/core/errors"
-	"github.com/derpixler/skolva/internal/core/mail"
-	"github.com/derpixler/skolva/internal/core/metadata"
+	apperrors "github.com/derpixler/skolva-core/errors"
+	"github.com/derpixler/skolva-core/mail"
+	"github.com/derpixler/skolva-core/metadata"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )

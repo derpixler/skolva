@@ -2,10 +2,10 @@
 package app
 
 import (
+	"github.com/derpixler/skolva-core/database"
+	"github.com/derpixler/skolva-core/middleware"
+	"github.com/derpixler/skolva-core/module"
 	apispec "github.com/derpixler/skolva/api"
-	"github.com/derpixler/skolva/internal/core/database"
-	"github.com/derpixler/skolva/internal/core/middleware"
-	"github.com/derpixler/skolva/internal/core/module"
 	"github.com/gin-gonic/gin"
 )
 

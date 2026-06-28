@@ -3,7 +3,7 @@ package groups
 import (
 	"context"
 
-	"github.com/derpixler/skolva/internal/core/dbexec"
+	"github.com/derpixler/skolva-core/dbexec"
 	"github.com/derpixler/skolva/internal/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"

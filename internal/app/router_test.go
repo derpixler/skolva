@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/derpixler/skolva-core/database"
+	"github.com/derpixler/skolva-core/middleware"
+	"github.com/derpixler/skolva-core/module"
 	"github.com/derpixler/skolva/internal/app"
-	"github.com/derpixler/skolva/internal/core/database"
-	"github.com/derpixler/skolva/internal/core/middleware"
-	"github.com/derpixler/skolva/internal/core/module"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"

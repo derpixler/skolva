@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/derpixler/skolva/internal/core/module"
+import "github.com/derpixler/skolva-core/module"
 
 // identityMigrations is the Core-slice schema owned by the identity module:
 // the shared base helpers plus the RBAC core (users, roles, permissions and

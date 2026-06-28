@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	apperrors "github.com/derpixler/skolva/internal/core/errors"
+	apperrors "github.com/derpixler/skolva-core/errors"
 	"github.com/derpixler/skolva/internal/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
