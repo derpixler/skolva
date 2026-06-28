@@ -27,24 +27,16 @@ func NewHandler(svc *Service) *Handler {
 func RegisterRoutes(rg *gin.RouterGroup, pool *pgxpool.Pool, tm *TokenManager, cipher *secrets.Cipher, mailer mail.Mailer) {
 	h := NewHandler(NewService(NewRepository(pool), tm, cipher, mailer))
 
-	rg.POST("/auth/login", h.Login)
-	rg.POST("/auth/register", middleware.RequirePermission("users.write"), h.Register)
+	// login/credential endpoints — via the identity provider (default: local)
+	LocalProvider{}.RegisterRoutes(rg, h)
 
-	rg.POST("/auth/2fa/setup", middleware.RequireAuth(), h.Setup2FA)
-	rg.POST("/auth/2fa/confirm", middleware.RequireAuth(), h.Confirm2FA)
-	rg.POST("/auth/2fa/verify", h.Verify2FA)
-	rg.POST("/auth/2fa/recovery", h.Recover2FA)
-	rg.POST("/auth/2fa/disable", middleware.RequireAuth(), h.Disable2FA)
+	// identity-management endpoints — provider-agnostic, always local
+	registerManagementRoutes(rg, h)
+}
 
-	rg.POST("/auth/2fa/email/setup", middleware.RequireAuth(), h.SetupEmail2FA)
-	rg.POST("/auth/2fa/email/confirm", middleware.RequireAuth(), h.ConfirmEmail2FA)
-	rg.POST("/auth/2fa/email/verify", h.VerifyEmail2FA)
-	rg.POST("/auth/2fa/email/resend", h.ResendEmail2FA)
-	rg.POST("/auth/2fa/email/disable", middleware.RequireAuth(), h.DisableEmail2FA)
-
-	rg.POST("/auth/password/forgot", h.ForgotPassword)
-	rg.POST("/auth/password/reset", h.ResetPassword)
-
+// registerManagementRoutes mounts the local user-management endpoints (user
+// CRUD, role assignment, search) that do not depend on the auth provider.
+func registerManagementRoutes(rg *gin.RouterGroup, h *Handler) {
 	rg.GET("/users", middleware.RequirePermission("users.read"), h.ListUsers)
 	rg.GET("/users/:id", middleware.RequirePermission("users.read"), h.GetUser)
 	rg.PATCH("/users/:id", middleware.RequirePermission("users.write"), h.UpdateUser)
