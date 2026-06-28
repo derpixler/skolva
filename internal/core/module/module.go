@@ -12,8 +12,11 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/derpixler/skolva/internal/core/cache"
+	"github.com/derpixler/skolva/internal/core/events"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/mail"
+	"github.com/derpixler/skolva/internal/core/search"
 	"github.com/derpixler/skolva/internal/core/secrets"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -42,6 +45,13 @@ type Deps struct {
 	Cipher *secrets.Cipher
 	Mailer mail.Mailer
 	Logger *slog.Logger
+
+	// Swappable infra seams (defaults: in-proc events, in-memory cache,
+	// Postgres-FTS search). A JobQueue seam is deferred until a module
+	// actually enqueues background work.
+	Events events.Bus
+	Cache  cache.Cache
+	Search search.Service
 }
 
 // Module is the contract every feature module implements.
