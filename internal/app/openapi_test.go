@@ -7,6 +7,7 @@ import (
 	apispec "github.com/derpixler/skolva/api"
 	"github.com/derpixler/skolva/internal/app"
 	"github.com/derpixler/skolva/internal/core/database"
+	"github.com/derpixler/skolva/internal/core/module"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 )
@@ -53,7 +54,7 @@ func TestOpenAPIRouteParity(t *testing.T) {
 
 	// Build the real router without a database: route registration does not
 	// query, so nil pools are fine for enumerating the route table.
-	engine := app.NewRouter(&database.Pools{}, nil, nil, noopVerifier, nil, nil, nil)
+	engine := app.NewRouter(&database.Pools{}, app.DefaultRegistry(nil), module.Deps{}, noopVerifier)
 
 	exempt := map[string]bool{
 		"GET /openapi.yaml":  true,
