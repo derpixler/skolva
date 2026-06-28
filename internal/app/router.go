@@ -3,25 +3,17 @@ package app
 
 import (
 	apispec "github.com/derpixler/skolva/api"
-	"github.com/derpixler/skolva/internal/auth"
-	"github.com/derpixler/skolva/internal/core/cache"
 	"github.com/derpixler/skolva/internal/core/database"
-	"github.com/derpixler/skolva/internal/core/events"
-	"github.com/derpixler/skolva/internal/core/hooks"
-	"github.com/derpixler/skolva/internal/core/jobs"
-	"github.com/derpixler/skolva/internal/core/mail"
 	"github.com/derpixler/skolva/internal/core/middleware"
 	"github.com/derpixler/skolva/internal/core/module"
-	"github.com/derpixler/skolva/internal/core/search"
-	"github.com/derpixler/skolva/internal/core/secrets"
-	"github.com/derpixler/skolva/internal/crm"
-	"github.com/derpixler/skolva/internal/groups"
 	"github.com/gin-gonic/gin"
 )
 
-// NewRouter returns a Gin engine with the standard middleware stack, health
-// endpoint, module routes (auth, crm, groups), OpenAPI spec serve, and API docs.
-func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker, verify middleware.Verifier, tm *auth.TokenManager, cipher *secrets.Cipher, mailer mail.Mailer) *gin.Engine {
+// NewRouter returns a Gin engine with the standard middleware stack, a health
+// endpoint, the modules' routes (mounted from the registry), the OpenAPI spec
+// and the API docs. The module assembly and its dependency bundle are built by
+// the composition root (cmd/api) and passed in.
+func NewRouter(pools *database.Pools, registry *module.Registry, deps module.Deps, verify middleware.Verifier) *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
@@ -40,20 +32,6 @@ func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker
 			c.JSON(200, gin.H{"status": "healthy"})
 		})
 
-		deps := module.Deps{
-			DB:     pools.Web,
-			Hooks:  hm,
-			Cipher: cipher,
-			Mailer: mailer,
-			Events: events.NewInProc(hm),
-			Cache:  cache.NewMemory(),
-			Search: search.NewService(pools.Web),
-		}
-		registry := module.NewRegistry(
-			auth.NewModule(tm),
-			groups.Module(),
-			crm.Module(),
-		)
 		registry.MountRoutes(api, deps)
 
 		api.GET("/openapi.yaml", func(c *gin.Context) {

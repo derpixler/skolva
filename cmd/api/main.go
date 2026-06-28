@@ -1,13 +1,14 @@
 // Skolva API server — a self-hosted community management platform.
 //
-// Phase 1 (Walking Skeleton): starts a Gin HTTP server with a health
-// endpoint, dual database pools, an empty plugin registry, and a
-// River job worker. No real business logic yet — just the foundation.
+// The composition root: it loads config, opens the database pools, builds the
+// module assembly and its dependency bundle, drives the module lifecycle
+// (hooks, activation) and starts the HTTP server and background worker.
 package main
 
 import (
 	"context"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,11 +17,15 @@ import (
 	"github.com/derpixler/skolva/internal/app"
 	"github.com/derpixler/skolva/internal/auth"
 	"github.com/derpixler/skolva/internal/core/ai"
+	"github.com/derpixler/skolva/internal/core/cache"
 	"github.com/derpixler/skolva/internal/core/config"
 	"github.com/derpixler/skolva/internal/core/database"
+	"github.com/derpixler/skolva/internal/core/events"
 	"github.com/derpixler/skolva/internal/core/hooks"
 	"github.com/derpixler/skolva/internal/core/jobs"
 	"github.com/derpixler/skolva/internal/core/mail"
+	"github.com/derpixler/skolva/internal/core/module"
+	"github.com/derpixler/skolva/internal/core/search"
 	"github.com/derpixler/skolva/internal/core/secrets"
 )
 
@@ -42,37 +47,24 @@ func main() {
 	}
 	defer pools.Close()
 
-	// Plugin system — empty in Phase 1, ready for module registration.
+	// Extensibility bus shared by all modules.
 	hookManager := hooks.NewHookManager()
-	pluginRegistry := hooks.NewPluginRegistry()
 
-	if err := pluginRegistry.RegisterAll(hookManager); err != nil {
-		log.Printf("failed to register plugins: %v", err)
-		return
-	}
-
-	if err := pluginRegistry.ActivateAll(pools.Web); err != nil {
-		log.Printf("failed to activate plugins: %v", err)
-		return
-	}
-
-	// AI provider — no-op until Phase 9.
+	// AI provider — no-op until the AI module lands.
 	aiProvider := ai.NewNoopProvider()
 	_ = aiProvider
 
-	// Background jobs — River worker with empty handler set.
+	// Background jobs — River worker.
 	worker, err := jobs.NewWorker(ctx, pools.Worker)
 	if err != nil {
 		log.Printf("failed to create worker: %v", err)
 		return
 	}
-
 	go func() {
 		if err := worker.Start(ctx); err != nil {
 			log.Printf("worker stopped: %v", err)
 		}
 	}()
-
 	jobs.StartScheduler(ctx, worker.Client())
 
 	tokenManager, err := auth.NewTokenManager(cfg.JWTSecret, time.Duration(cfg.JWTExpiryHours)*time.Hour)
@@ -80,14 +72,39 @@ func main() {
 		log.Printf("failed to create token manager: %v", err)
 		return
 	}
-
 	verify := auth.NewVerifier(tokenManager)
+
 	cipher, err := secrets.NewCipher(cfg.EncryptionKey)
 	if err != nil {
 		log.Printf("failed to create secrets cipher: %v", err)
 		return
 	}
-	router := app.NewRouter(pools, hookManager, worker, verify, tokenManager, cipher, mail.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPFrom))
+
+	mailer := mail.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPFrom)
+
+	// Module assembly + typed dependency bundle (composition root).
+	deps := module.Deps{
+		DB:     pools.Web,
+		Hooks:  hookManager,
+		Cipher: cipher,
+		Mailer: mailer,
+		Events: events.NewInProc(hookManager),
+		Cache:  cache.NewMemory(),
+		Search: search.NewService(pools.Web),
+		Logger: slog.Default(),
+	}
+	registry := app.DefaultRegistry(tokenManager)
+
+	if err := registry.RegisterHooks(hookManager); err != nil {
+		log.Printf("failed to register module hooks: %v", err)
+		return
+	}
+	if err := registry.ActivateAll(ctx, deps); err != nil {
+		log.Printf("failed to activate modules: %v", err)
+		return
+	}
+
+	router := app.NewRouter(pools, registry, deps, verify)
 
 	go func() {
 		addr := ":" + cfg.Port
@@ -101,5 +118,5 @@ func main() {
 	log.Println("shutting down...")
 
 	_ = worker.Stop(context.Background())
-	_ = pluginRegistry.DeactivateAll()
+	_ = registry.DeactivateAll(context.Background())
 }
