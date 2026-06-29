@@ -5,6 +5,10 @@ RUN apk add --no-cache git
 
 WORKDIR /app
 
+# Fetch skolva-core directly from Git (no proxy/sum-db latency for freshly
+# published module). Remove once the module is well-cached on the proxy.
+ENV GOPRIVATE=github.com/derpixler/skolva-core
+
 COPY go.mod go.sum ./
 RUN go mod download
 

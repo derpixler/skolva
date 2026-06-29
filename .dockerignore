@@ -1,0 +1,3 @@
+# Local workspace file (machine-specific, not for Docker builds)
+go.work
+go.work.sum

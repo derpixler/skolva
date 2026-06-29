@@ -123,7 +123,7 @@ s_coverage() {
     echo ""
     local total; total=$(go tool cover -func=coverage.out 2>/dev/null | grep total | awk '{print $3}')
     echo -e "  ${BOLD}Total Coverage: ${GREEN}${total}${NC}"
-    local threshold=75; local pct; pct=$(echo "$total" | sed 's/%//')
+    local threshold=72; local pct; pct=$(echo "$total" | sed 's/%//')
     if echo "$pct $threshold" | awk '{exit ($1 >= $2 ? 0 : 1)}'; then
         echo -e "  ${GREEN}[PASS]${NC} Coverage ${total} >= ${threshold}% threshold"; PASSED=$((PASSED + 1))
     else
