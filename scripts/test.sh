@@ -64,16 +64,16 @@ s_run_all() {
 # ============================================================================
 
 ALL_STEPS=(
-    "all:Run all steps in order (TP1 + TP2)"
+    "all:Run all steps in order"
     "01:Prerequisites Check"
     "02:Build"
     "03:Lint"
-    "04:All Unit Tests (TP1 + TP2)"
-    "04a:TP1 Unit Tests"
-    "04b:TP2 Unit Tests (§§ 1.1 – 1.12)"
-    "05:All Integration Tests (TP1 + TP2, needs Docker)"
-    "05a:TP1 Integration Tests"
-    "05b:TP2 Integration Tests (§§ 2.1 – 2.21, needs Docker)"
+    "04:All Product Unit Tests"
+    "04a:Product: plugins + main health"
+    "04b:Product: auth (password, JWT, permissions) + OpenAPI parity (app)"
+    "05:All Product Integration Tests (needs Docker)"
+    "05a:Product: app router health + unhealthy (needs Docker)"
+    "05b:Product: auth + crm + groups (needs Docker)"
     "06:Full Test Suite + Coverage"
     "07:Docker Compose (up → check → down)"
     "08:Docker Image Build + Health"
@@ -83,7 +83,7 @@ ALL_STEPS=(
 
 show_menu() {
     echo ""
-    echo -e "${BOLD}Available Test Steps (TP1 + TP2)${NC}"
+    echo -e "${BOLD}Available Test Steps${NC}"
     echo "──────────────────────────────────────"
     for entry in "${ALL_STEPS[@]}"; do
         local key="${entry%%:*}" desc="${entry#*:}"
