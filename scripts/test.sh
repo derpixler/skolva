@@ -22,23 +22,8 @@ source "$SCRIPT_DIR/tests/tp2.sh"
 s_tp1_unit() {
     banner "TP1 Unit Tests"
 
-    step "TP1.1" "Config"
-    run_go_test "Config tests" ./internal/core/config/ -v
-
-    step "TP1.2" "Types — Decimal + Duration"
-    run_go_test "Types tests" ./internal/core/types/ -v
-
-    step "TP1.3" "Errors — PG Error Mapping"
-    run_go_test "Error tests" ./internal/core/errors/ -v
-
-    step "TP1.4" "Hooks — HookManager + CRUDHooks + Plugin Registry"
-    run_go_test "Hooks tests" ./internal/core/hooks/ -v
-
-    step "TP1.5" "AI — Noop Provider"
-    run_go_test "AI tests" ./internal/core/ai/ -v
-
-    step "TP1.6" "Jobs — Scheduled Jobs (unit)"
-    run_go_test "Jobs unit tests" ./internal/core/jobs/ -v -run "TestDefault|TestScheduled|TestRegister"
+    # Core unit tests (config, types, errors, hooks, ai, jobs) moved to the
+    # skolva-core repo and run in its own CI.
 
     step "TP1.7" "Plugins — Empty Registry"
     run_go_test "Plugin tests" ./plugins/ -v
@@ -55,11 +40,7 @@ s_tp1_integration() {
         return
     fi
 
-    step "TP1.9" "Database — Pool creation, health, schema execution"
-    run_go_test "Database integration tests" ./internal/core/database/ -v -count=1
-
-    step "TP1.10" "Jobs — River Worker"
-    run_go_test "Worker integration test" ./internal/core/jobs/ -v -run "TestNewWorker"
+    # Core integration tests (database, jobs worker) moved to skolva-core.
 
     step "TP1.11" "App — Router with real DB (health + unhealthy)"
     run_go_test "App router integration tests" ./internal/app/ -v -count=1 -run "TestNewRouter"
