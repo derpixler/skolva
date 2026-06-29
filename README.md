@@ -91,7 +91,7 @@ docker compose up -d
 make run
 
 # Health check
-curl http://localhost:8080/api/health
+curl http://localhost:8088/api/health
 # {"status":"healthy"}
 ```
 
