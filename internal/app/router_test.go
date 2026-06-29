@@ -10,18 +10,17 @@ import (
 
 	"github.com/derpixler/skolva/internal/app"
 	"github.com/derpixler/skolva/internal/core/database"
-	"github.com/derpixler/skolva/internal/core/hooks"
-	"github.com/derpixler/skolva/internal/core/jobs"
+	"github.com/derpixler/skolva/internal/core/middleware"
+	"github.com/derpixler/skolva/internal/core/module"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func TestNewRouterHealth(t *testing.T) {
-	if os.Getenv("SKIP_INTEGRATION") == "1" {
-		t.Skip("skipping integration test")
-	}
+func noopVerifier(string) (*middleware.Actor, error) { return nil, nil }
 
+func startPostgres(t *testing.T) (*database.Pools, func()) {
+	t.Helper()
 	ctx := context.Background()
 
 	pgContainer, err := postgres.Run(ctx,
@@ -38,27 +37,34 @@ func TestNewRouterHealth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start postgres: %v", err)
 	}
-	defer func() { _ = pgContainer.Terminate(ctx) }()
 
 	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
+		_ = pgContainer.Terminate(ctx)
 		t.Fatalf("failed to get connection string: %v", err)
 	}
 
 	pools, err := database.NewPools(ctx, connStr)
 	if err != nil {
+		_ = pgContainer.Terminate(ctx)
 		t.Fatalf("failed to create pools: %v", err)
 	}
-	defer pools.Close()
 
-	hm := hooks.NewHookManager()
+	return pools, func() {
+		_ = pgContainer.Terminate(ctx)
+	}
+}
 
-	worker, err := jobs.NewWorker(ctx, pools.Worker)
-	if err != nil {
-		t.Fatalf("failed to create worker: %v", err)
+func TestNewRouterHealth(t *testing.T) {
+	if os.Getenv("SKIP_INTEGRATION") == "1" {
+		t.Skip("skipping integration test")
 	}
 
-	router := app.NewRouter(pools, hm, worker)
+	pools, cleanup := startPostgres(t)
+	defer cleanup()
+	defer pools.Close()
+
+	router := app.NewRouter(pools, module.NewRegistry(), module.Deps{}, noopVerifier)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/health", nil)
@@ -74,44 +80,12 @@ func TestNewRouterUnhealthy(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	ctx := context.Background()
+	pools, cleanup := startPostgres(t)
+	defer cleanup()
 
-	pgContainer, err := postgres.Run(ctx,
-		"postgres:16-alpine",
-		postgres.WithDatabase("vv"),
-		postgres.WithUsername("vv"),
-		postgres.WithPassword("vv"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).
-				WithStartupTimeout(30*time.Second),
-		),
-	)
-	if err != nil {
-		t.Fatalf("failed to start postgres: %v", err)
-	}
-	defer func() { _ = pgContainer.Terminate(ctx) }()
+	router := app.NewRouter(pools, module.NewRegistry(), module.Deps{}, noopVerifier)
 
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		t.Fatalf("failed to get connection string: %v", err)
-	}
-
-	pools, err := database.NewPools(ctx, connStr)
-	if err != nil {
-		t.Fatalf("failed to create pools: %v", err)
-	}
-
-	hm := hooks.NewHookManager()
-
-	worker, err := jobs.NewWorker(ctx, pools.Worker)
-	if err != nil {
-		pools.Close()
-		t.Fatalf("failed to create worker: %v", err)
-	}
-
-	router := app.NewRouter(pools, hm, worker)
-
+	// Close the pools so the health check fails.
 	pools.Close()
 
 	w := httptest.NewRecorder()

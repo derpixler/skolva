@@ -16,10 +16,11 @@ import (
 
 // Config holds all application configuration derived from environment variables.
 type Config struct {
-	Port             string   // HTTP listen port, default "8080"
+	Port             string   // HTTP listen port, default "8088"
 	Env              string   // deployment environment: "development" or "production"
 	DatabaseURL      string   // PostgreSQL connection string (required)
 	JWTSecret        string   // HS256 signing key (required)
+	EncryptionKey    string   // AES-256 key for TOTP secret encryption (required)
 	JWTExpiryHours   int      // token lifetime in hours, default 24
 	ZFARequiredRoles []string // roles that MUST enable two-factor auth
 	AIProviderURL    string   // OpenAI-compatible API base URL
@@ -47,10 +48,11 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		Port:             getEnv("APP_PORT", "8080"),
+		Port:             getEnv("APP_PORT", "8088"),
 		Env:              getEnv("APP_ENV", "development"),
 		DatabaseURL:      requireEnv("DATABASE_URL"),
 		JWTSecret:        requireEnv("JWT_SECRET"),
+		EncryptionKey:    requireEnv("ENCRYPTION_KEY"),
 		JWTExpiryHours:   getEnvInt("JWT_EXPIRY_HOURS", 24),
 		ZFARequiredRoles: getEnvSlice("ZFA_REQUIRED_ROLES", []string{"admin", "vorstand", "kassierer"}),
 		AIProviderURL:    getEnv("AI_PROVIDER_URL", ""),

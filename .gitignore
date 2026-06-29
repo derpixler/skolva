@@ -31,5 +31,8 @@ Thumbs.db
 # Storage
 data/
 
+# Test logs
+logs/
+
 # Generated
 sqlc/*.go

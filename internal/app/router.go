@@ -2,23 +2,24 @@
 package app
 
 import (
+	apispec "github.com/derpixler/skolva/api"
 	"github.com/derpixler/skolva/internal/core/database"
-	"github.com/derpixler/skolva/internal/core/hooks"
-	"github.com/derpixler/skolva/internal/core/jobs"
 	"github.com/derpixler/skolva/internal/core/middleware"
+	"github.com/derpixler/skolva/internal/core/module"
 	"github.com/gin-gonic/gin"
 )
 
-// NewRouter returns a Gin engine with the standard middleware stack and
-// a single /api/health endpoint. The health endpoint pings both database
-// pools and returns 200 {"status":"healthy"} or 503 on failure.
-func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker) *gin.Engine {
+// NewRouter returns a Gin engine with the standard middleware stack, a health
+// endpoint, the modules' routes (mounted from the registry), the OpenAPI spec
+// and the API docs. The module assembly and its dependency bundle are built by
+// the composition root (cmd/api) and passed in.
+func NewRouter(pools *database.Pools, registry *module.Registry, deps module.Deps, verify middleware.Verifier) *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Recovery())
 	router.Use(middleware.RequestID())
 	router.Use(middleware.CORS())
-	router.Use(middleware.AuthSkeleton())
+	router.Use(middleware.Authenticate(verify))
 	router.Use(middleware.ActorMiddleware())
 
 	api := router.Group("/api")
@@ -29,6 +30,18 @@ func NewRouter(pools *database.Pools, hm *hooks.HookManager, worker *jobs.Worker
 				return
 			}
 			c.JSON(200, gin.H{"status": "healthy"})
+		})
+
+		registry.MountRoutes(api, deps)
+
+		api.GET("/openapi.yaml", func(c *gin.Context) {
+			c.Data(200, "application/yaml", apispec.Spec)
+		})
+		api.GET("/docs", func(c *gin.Context) {
+			c.Data(200, "text/html; charset=utf-8", apispec.RedocHTML)
+		})
+		api.GET("/docs/redoc.js", func(c *gin.Context) {
+			c.Data(200, "application/javascript", apispec.RedocJS)
 		})
 	}
 
