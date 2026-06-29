@@ -54,9 +54,5 @@ func (LocalProvider) RegisterRoutes(rg *gin.RouterGroup, h *Handler) {
 // Selecting a non-local provider is wired through the composition root once a
 // concrete adapter (e.g. OIDC) exists.
 func ProviderFor(name string) Provider {
-	switch name {
-	// case "oidc": return NewOIDCProvider(...) // future adapter
-	default:
-		return LocalProvider{}
-	}
+
 }
