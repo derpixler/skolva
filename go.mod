@@ -8,14 +8,16 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/joho/godotenv v1.5.1
 	github.com/pquerna/otp v1.5.0
-	github.com/riverqueue/river v0.39.0
-	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.39.0
-	github.com/shopspring/decimal v1.4.0
 	github.com/testcontainers/testcontainers-go v0.43.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.43.0
 	golang.org/x/crypto v0.51.0
+)
+
+require (
+	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/riverqueue/river v0.39.0 // indirect
+	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.39.0 // indirect
 )
 
 require (
@@ -35,6 +37,7 @@ require (
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/derpixler/skolva-core v0.1.0
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
