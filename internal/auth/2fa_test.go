@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/derpixler/skolva-core/middleware"
+	"github.com/derpixler/skolva-core/secrets"
 	"github.com/derpixler/skolva/internal/auth"
-	"github.com/derpixler/skolva/internal/core/middleware"
-	"github.com/derpixler/skolva/internal/core/secrets"
 	"github.com/derpixler/skolva/internal/db"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

@@ -1,8 +1,8 @@
 package app
 
 import (
+	"github.com/derpixler/skolva-core/module"
 	"github.com/derpixler/skolva/internal/auth"
-	"github.com/derpixler/skolva/internal/core/module"
 	"github.com/derpixler/skolva/internal/crm"
 	"github.com/derpixler/skolva/internal/groups"
 )

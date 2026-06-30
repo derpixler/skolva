@@ -5,7 +5,7 @@
 // The registry is consumed by cmd/api/main.go at startup.
 package plugins
 
-import "github.com/derpixler/skolva/internal/core/hooks"
+import "github.com/derpixler/skolva-core/hooks"
 
 // All returns the list of registered plugins. Currently empty — plugins
 // will be added as modules are implemented in subsequent phases.

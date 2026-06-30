@@ -3,7 +3,7 @@ package auth
 import (
 	"errors"
 
-	"github.com/derpixler/skolva/internal/core/middleware"
+	"github.com/derpixler/skolva-core/middleware"
 )
 
 // NewVerifier returns a middleware.Verifier that validates access tokens via

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	apperrors "github.com/derpixler/skolva/internal/core/errors"
-	"github.com/derpixler/skolva/internal/core/mail"
-	"github.com/derpixler/skolva/internal/core/secrets"
+	apperrors "github.com/derpixler/skolva-core/errors"
+	"github.com/derpixler/skolva-core/mail"
+	"github.com/derpixler/skolva-core/secrets"
 	"github.com/derpixler/skolva/internal/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"

@@ -5,6 +5,8 @@ RUN apk add --no-cache git
 
 WORKDIR /app
 
+ENV GOPRIVATE=github.com/derpixler/skolva-core
+
 COPY go.mod go.sum ./
 RUN go mod download
 
@@ -22,6 +24,8 @@ RUN addgroup -S app && adduser -S app -G app
 USER app
 
 WORKDIR /app
+
+ENV GOPRIVATE=github.com/derpixler/skolva-core
 COPY --from=builder /app/bin/skolva .
 COPY --from=builder /app/schema.sql .
 

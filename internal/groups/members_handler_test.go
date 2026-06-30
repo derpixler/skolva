@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/derpixler/skolva/internal/core/middleware"
+	"github.com/derpixler/skolva-core/middleware"
 	"github.com/derpixler/skolva/internal/db"
 	"github.com/derpixler/skolva/internal/groups"
 	"github.com/gin-gonic/gin"

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/derpixler/skolva/internal/core/middleware"
+	"github.com/derpixler/skolva-core/middleware"
 	"github.com/derpixler/skolva/internal/groups"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
