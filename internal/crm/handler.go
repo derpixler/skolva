@@ -3,8 +3,8 @@ package crm
 import (
 	"net/http"
 
-	apperrors "github.com/derpixler/skolva/internal/core/errors"
-	"github.com/derpixler/skolva/internal/core/middleware"
+	apperrors "github.com/derpixler/skolva-core/errors"
+	"github.com/derpixler/skolva-core/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"

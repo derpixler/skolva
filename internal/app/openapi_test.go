@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/derpixler/skolva-core/database"
+	"github.com/derpixler/skolva-core/module"
 	apispec "github.com/derpixler/skolva/api"
 	"github.com/derpixler/skolva/internal/app"
-	"github.com/derpixler/skolva/internal/core/database"
-	"github.com/derpixler/skolva/internal/core/module"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 )

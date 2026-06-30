@@ -3,8 +3,8 @@ package auth
 import (
 	"context"
 
-	"github.com/derpixler/skolva/internal/core/hooks"
-	"github.com/derpixler/skolva/internal/core/module"
+	"github.com/derpixler/skolva-core/hooks"
+	"github.com/derpixler/skolva-core/module"
 	"github.com/gin-gonic/gin"
 )
 
